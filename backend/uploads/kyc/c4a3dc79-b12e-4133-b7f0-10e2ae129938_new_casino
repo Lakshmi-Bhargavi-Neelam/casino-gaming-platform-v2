@@ -1,0 +1,781 @@
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- =====================================================
+-- TENANTS
+-- =====================================================
+CREATE TABLE tenants (
+    tenant_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_name VARCHAR(100) NOT NULL UNIQUE,
+    domain VARCHAR(255) UNIQUE,
+    status VARCHAR(20) DEFAULT 'active'
+        CHECK (status IN ('active', 'suspended', 'inactive')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- COUNTRIES & CURRENCIES
+-- =====================================================
+CREATE TABLE countries (
+    country_code CHAR(2) PRIMARY KEY,
+    country_name VARCHAR(100) NOT NULL,
+    default_timezone VARCHAR(50) NOT NULL,
+    default_currency_id INT NOT NULL REFERENCES currencies(currency_id));
+
+CREATE TABLE currencies (
+    currency_id SERIAL PRIMARY KEY,
+    currency_code CHAR(3) NOT NULL UNIQUE,
+    currency_name VARCHAR(50) NOT NULL,
+    symbol VARCHAR(5),
+    decimal_places INTEGER DEFAULT 2
+);
+
+INSERT INTO currencies (currency_code, currency_name, symbol, decimal_places) VALUES
+('USD', 'US Dollar', '$', 2),
+('EUR', 'Euro', '€', 2),
+('GBP', 'British Pound', '£', 2),
+('INR', 'Indian Rupee', '₹', 2),
+('JPY', 'Japanese Yen', '¥', 0),
+('AUD', 'Australian Dollar', 'A$', 2),
+('CAD', 'Canadian Dollar', 'C$', 2),
+('CHF', 'Swiss Franc', 'CHF', 2),
+('CNY', 'Chinese Yuan', '¥', 2),
+('SGD', 'Singapore Dollar', 'S$', 2);
+
+INSERT INTO countries (country_code, country_name, default_timezone, default_currency_id) VALUES
+('US', 'United States', 'America/New_York', 1),   -- USD
+('DE', 'Germany', 'Europe/Berlin', 2),           -- EUR
+('GB', 'United Kingdom', 'Europe/London', 3),    -- GBP
+('IN', 'India', 'Asia/Kolkata', 4),               -- INR
+('JP', 'Japan', 'Asia/Tokyo', 5),                 -- JPY
+('AU', 'Australia', 'Australia/Sydney', 6),      -- AUD
+('CA', 'Canada', 'America/Toronto', 7),          -- CAD
+('CH', 'Switzerland', 'Europe/Zurich', 8),       -- CHF
+('CN', 'China', 'Asia/Shanghai', 9),              -- CNY
+('SG', 'Singapore', 'Asia/Singapore', 10);       -- SGD
+
+SELECT
+    c.country_code,
+    c.country_name,
+    cur.currency_code,
+    cur.currency_name
+FROM countries c
+JOIN currencies cur ON c.default_currency_id = cur.currency_id;
+
+
+-- =====================================================
+-- TENANT CONFIGURATION
+-- =====================================================
+CREATE TABLE tenant_countries (
+    tenant_id UUID REFERENCES tenants(tenant_id),
+    country_code CHAR(2) REFERENCES countries(country_code),
+    --timezone VARCHAR(50) NOT NULL,
+ 
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (tenant_id, country_code)
+);
+  
+CREATE TABLE tax_rules (
+    tax_rule_id SERIAL PRIMARY KEY,
+    tenant_id UUID REFERENCES tenants(tenant_id),
+    country_code CHAR(2) REFERENCES countries(country_code),
+    tax_name VARCHAR(100),
+    tax_type VARCHAR(30)
+        CHECK (tax_type IN ('GGR','WINNINGS','DEPOSIT')),
+    tax_rate NUMERIC(5,2) NOT NULL,
+    min_amount NUMERIC(14,2),
+    max_amount NUMERIC(14,2),
+    effective_from DATE NOT NULL,
+    effective_to DATE,
+    is_active BOOLEAN DEFAULT TRUE,
+    UNIQUE (tenant_id, country_code, tax_name, effective_from)
+);
+
+-- =====================================================
+-- USERS & ROLES
+-- =====================================================
+CREATE TABLE roles (
+    role_id SERIAL PRIMARY KEY,
+    role_name VARCHAR(30) NOT NULL UNIQUE
+);
+INSERT INTO roles (role_name) VALUES
+('PLAYER'),
+('TENANT_ADMIN'),
+('SUPER_ADMIN'),
+('GAME_PROVIDER');
+
+INSERT INTO users (
+    user_id,
+    first_name,
+    last_name,
+    email,
+    password_hash,
+    role_id,
+    tenant_id,
+    country_code,
+    status
+)
+VALUES (
+    gen_random_uuid(),
+    'Platform',
+    'Owner',
+    'superadmin@casino-platform.com',
+    '$2b$12$4dYIcpUWE5wiRQHvGYFoL.CdP1zIy5y/9mErVq08OcSqh7qOA0il.',
+    3,          -- SUPER_ADMIN role_id
+    NULL,       -- NOT tied to any tenant
+    NULL,
+    'active'
+);
+
+
+CREATE TABLE users (
+    user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+
+    role_id INT NOT NULL REFERENCES roles(role_id),
+
+    tenant_id UUID REFERENCES tenants(tenant_id),
+    country_code CHAR(2) REFERENCES countries(country_code),
+
+    status VARCHAR(20)
+        CHECK (status IN ('active', 'blocked', 'self_excluded'))
+        DEFAULT 'active',
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 1. Add new columns to the users table
+ALTER TABLE users 
+
+ADD COLUMN kyc_verified_at TIMESTAMP
+
+
+-- 2. Add the check constraint for kyc_status
+ALTER TABLE users 
+ADD CONSTRAINT check_kyc_status 
+CHECK (kyc_status IN ('pending', 'verified', 'rejected', 'expired'));
+select * from users;
+
+-- =====================================================
+-- KYC & PLAYERS
+-- =====================================================
+CREATE TABLE kyc_documents (
+    document_id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(user_id),
+    document_type VARCHAR(50) NOT NULL,
+    document_number VARCHAR(100),
+    file_path VARCHAR(500) NOT NULL,
+    verification_status VARCHAR(20)
+        CHECK (verification_status IN ('pending','verified','rejected','expired'))
+        DEFAULT 'pending',
+    verified_by UUID REFERENCES users(user_id),
+    verified_at TIMESTAMP,
+    expiry_date DATE,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add rejection_reason for specific document feedback
+ALTER TABLE kyc_documents 
+ADD COLUMN rejection_reason TEXT;
+
+CREATE TABLE players (
+    player_id UUID PRIMARY KEY REFERENCES users(user_id),
+    status VARCHAR(20)
+        CHECK (status IN ('active','suspended','self_excluded','closed'))
+        DEFAULT 'active',
+    kyc_status VARCHAR(20)
+        CHECK (kyc_status IN ('pending','verified','rejected','expired'))
+        DEFAULT 'pending',
+    kyc_verified_at TIMESTAMP,
+    last_login_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE responsible_limits (
+    limit_id SERIAL PRIMARY KEY,
+    player_id UUID REFERENCES players(player_id),
+    daily_deposit_limit NUMERIC(14,2),
+    daily_bet_limit NUMERIC(14,2),
+    monthly_bet_limit NUMERIC(14,2),
+    self_exclusion_until DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- WALLETS & TRANSACTIONS
+-- =====================================================
+CREATE TABLE wallet_types (
+    wallet_type_id SERIAL PRIMARY KEY,
+    wallet_type_code VARCHAR(20) UNIQUE NOT NULL,
+    description TEXT
+);
+
+INSERT INTO wallet_types (wallet_type_code, description)
+VALUES
+    ('CASH', 'Real money wallet'),
+    ('BONUS', 'Bonus / promotional wallet')
+ON CONFLICT (wallet_type_id) DO NOTHING;
+
+
+CREATE TABLE transaction_types (
+    transaction_type_id SERIAL PRIMARY KEY,
+    transaction_code VARCHAR(30) UNIQUE NOT NULL,
+    description TEXT
+);
+
+INSERT INTO transaction_types (transaction_code, description)
+VALUES
+    ('deposit', 'Deposit funds into wallet'),
+    ('bet', 'Bet placed by player'),
+    ('win', 'Bet win credited'),
+    ('bonus', 'Bonus credited to bonus wallet'),
+    ('withdrawal', 'Wallet balance deducted after admin approval');
+
+ALTER TABLE transaction_types
+ADD COLUMN direction VARCHAR(10) CHECK (direction IN ('debit','credit'));
+
+
+UPDATE transaction_types SET direction = 'credit' WHERE transaction_code IN ('deposit','win','bonus');
+UPDATE transaction_types SET direction = 'debit'  WHERE transaction_code IN ('bet','withdrawal');
+
+CREATE TABLE wallets (
+    wallet_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    player_id UUID REFERENCES players(player_id),
+    tenant_id UUID REFERENCES tenants(tenant_id),
+    currency_id INT REFERENCES currencies(currency_id),
+    wallet_type_id INT REFERENCES wallet_types(wallet_type_id),
+    balance NUMERIC(18,2) DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (player_id, tenant_id, currency_id, wallet_type_id)
+);
+
+CREATE TABLE wallet_transactions (
+    transaction_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    wallet_id UUID REFERENCES wallets(wallet_id),
+    transaction_type_id INT REFERENCES transaction_types(transaction_type_id),
+    amount NUMERIC(18,2) NOT NULL,
+    balance_before NUMERIC(18,2) NOT NULL,
+    balance_after NUMERIC(18,2) NOT NULL,
+    reference_type VARCHAR(30),
+    reference_id UUID,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE wallet_transactions
+ADD COLUMN status VARCHAR(20) DEFAULT 'success'
+CHECK (status IN ('pending','success','failed','reversed'));
+
+-- =====================================================
+-- Game Catalog
+-- =====================================================
+
+CREATE TABLE game_providers (
+    provider_id SERIAL PRIMARY KEY,
+    provider_name VARCHAR(100) NOT NULL UNIQUE,
+    website VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+TRUNCATE TABLE game_providers CASCADE;
+
+DROP TABLE game_providers CASCADE;
+
+CREATE TABLE game_providers (
+    provider_id UUID PRIMARY KEY
+        REFERENCES users(user_id) ON DELETE CASCADE,
+
+    provider_name VARCHAR(100) NOT NULL UNIQUE,
+    website VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE game_providers RENAME COLUMN provider_id TO old_provider_id;
+ALTER TABLE game_providers ADD COLUMN provider_id UUID;
+ALTER TABLE game_providers DROP COLUMN old_provider_id CASCADE;
+
+ALTER TABLE game_providers
+ADD CONSTRAINT game_providers_pkey PRIMARY KEY (provider_id);
+
+
+INSERT INTO game_categories (category_name, description)
+VALUES ('CASUAL', 'Simple casual games');
+INSERT INTO game_categories (category_name, description)
+VALUES
+    ('Slots', 'Slot-based casino games'),
+    ('Table Games', 'Classic table games like blackjack and roulette'),
+    ('Live Casino', 'Live dealer casino games'),
+    ('Poker', 'Poker and card-based games'),
+    ('Casual', 'Simple casual games')
+ON CONFLICT (category_name) DO NOTHING;
+
+
+CREATE TABLE game_categories (
+    category_id SERIAL PRIMARY KEY,
+    category_name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT
+);
+
+CREATE TABLE tenant_providers (
+    tenant_id UUID REFERENCES tenants(tenant_id),
+    provider_id INT REFERENCES game_providers(provider_id),
+    is_active BOOLEAN DEFAULT TRUE,
+    contract_start DATE,
+    contract_end DATE,
+    PRIMARY KEY (tenant_id, provider_id)
+);
+
+DROP TABLE tenant_providers;
+CREATE TABLE tenant_providers (
+    tenant_id UUID REFERENCES tenants(tenant_id),
+    provider_id UUID REFERENCES game_providers(provider_id),
+    is_active BOOLEAN DEFAULT TRUE,
+    contract_start DATE,
+    contract_end DATE,
+    PRIMARY KEY (tenant_id, provider_id)
+);
+
+
+
+CREATE TABLE games (
+    game_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    provider_id INT REFERENCES game_providers(provider_id),
+    category_id INT REFERENCES game_categories(category_id),
+    game_name VARCHAR(150) NOT NULL,
+    game_code VARCHAR(100) NOT NULL,
+    rtp_percentage NUMERIC(5,2),
+    volatility VARCHAR(20),
+    min_bet NUMERIC(12,2),
+    max_bet NUMERIC(12,2),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+DROP TABLE IF EXISTS games CASCADE;
+CREATE TABLE games (
+    game_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    provider_id UUID NOT NULL
+        REFERENCES game_providers(provider_id)
+        ON DELETE CASCADE,
+
+    category_id INT NOT NULL
+        REFERENCES game_categories(category_id),
+
+    game_name VARCHAR(150) NOT NULL,
+    game_code VARCHAR(100) NOT NULL UNIQUE,
+
+    rtp_percentage NUMERIC(5,2),
+    volatility VARCHAR(20),
+
+    min_bet NUMERIC(12,2),
+    max_bet NUMERIC(12,2),
+
+    engine_type VARCHAR(50),
+    engine_config JSONB,
+
+    status VARCHAR(20) DEFAULT 'pending',
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+
+
+
+
+
+
+
+
+
+-- Indexing for fast lookups by Admin and Engine Factory
+CREATE INDEX idx_games_engine_type ON games(engine_type);
+CREATE INDEX idx_games_status ON games(status);
+
+-- Optional: Add a check constraint to ensure only valid engine types are entered
+ALTER TABLE games ADD CONSTRAINT check_engine_types 
+CHECK (engine_type IN ('dice_engine', 'slot_engine', 'crash_engine', 'plinko_engine', 'mines_engine'));
+
+ALTER TABLE games
+DROP COLUMN tenant_id;
+
+ALTER TABLE games
+ADD COLUMN engine_type VARCHAR(50) DEFAULT 'slot_engine',
+ADD COLUMN engine_config JSONB DEFAULT '{}'::jsonb;
+
+UPDATE games 
+SET engine_type = 'dice_engine' 
+WHERE engine_type = 'slot_engine';
+UPDATE games
+SET 
+    engine_type = 'dice_engine',
+    engine_config = '{
+        "multiplier": 2
+    }'::jsonb
+WHERE game_code = 'DR456';
+
+select * from games;
+ALTER TABLE games
+ADD COLUMN engine_type VARCHAR(50) NOT NULL,
+ADD COLUMN engine_config JSONB NOT NULL;
+
+
+-- 1️⃣ Create enum type
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'game_status_enum') THEN
+        CREATE TYPE game_status_enum AS ENUM ('pending', 'active', 'inactive');
+    END IF;
+END$$;
+
+-- 2️⃣ Add new column with default 'pending'
+ALTER TABLE games
+ADD COLUMN status game_status_enum NOT NULL DEFAULT 'pending';
+
+-- 3️⃣ Optionally, remove old is_active and is_approved columns if you had them
+ALTER TABLE games DROP COLUMN is_active;
+-- ALTER TABLE games DROP COLUMN is_approved;
+ALTER TABLE games
+ALTER COLUMN status DROP DEFAULT;
+
+ALTER TYPE game_status_enum RENAME TO game_status_enum_old;
+CREATE TYPE game_status_enum AS ENUM ('pending', 'active', 'inactive');
+ALTER TABLE games
+ALTER COLUMN status TYPE game_status_enum
+USING LOWER(status::text)::game_status_enum;
+ALTER TABLE games
+ALTER COLUMN status SET DEFAULT 'pending';
+
+SELECT column_name, column_default, udt_name
+FROM information_schema.columns
+WHERE table_name = 'games';
+
+
+CREATE TABLE tenant_games (
+    tenant_id UUID REFERENCES tenants(tenant_id),
+    game_id UUID REFERENCES games(game_id),
+
+    -- tenant-specific configuration
+    is_active BOOLEAN DEFAULT TRUE,
+    launch_date DATE,
+
+    min_bet NUMERIC(12,2),
+    max_bet NUMERIC(12,2),
+    rtp_override NUMERIC(5,2),
+
+    revenue_share NUMERIC(5,2), -- provider vs tenant
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (tenant_id, game_id)
+);
+
+ALTER TABLE tenant_games
+DROP COLUMN is_active;
+
+ALTER TABLE tenant_games
+ADD COLUMN status VARCHAR(20) DEFAULT 'active'
+CHECK (status IN ('active', 'inactive'));
+
+
+
+CREATE TABLE game_countries (
+    game_id UUID REFERENCES games(game_id),
+    country_code CHAR(2) REFERENCES countries(country_code),
+    is_allowed BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (game_id, country_code)
+);
+
+
+-- =====================================================
+-- Game Sessions & Bets
+-- =====================================================
+
+CREATE TABLE game_sessions (
+    session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    player_id UUID NOT NULL REFERENCES players(player_id),
+    game_id UUID NOT NULL REFERENCES games(game_id),
+    tenant_id UUID NOT NULL REFERENCES tenants(tenant_id),
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'active'
+        CHECK (status IN ('active', 'completed', 'abandoned')),
+    ip_address VARCHAR(45),
+    device_info TEXT
+);
+
+CREATE TABLE game_rounds (
+    round_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID NOT NULL REFERENCES game_sessions(session_id),
+    round_number INT NOT NULL,
+    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ended_at TIMESTAMP,
+    outcome VARCHAR(50),
+    UNIQUE (session_id, round_number)
+);
+
+ALTER TABLE game_rounds
+ADD COLUMN bet_amount NUMERIC(18,2),
+ADD COLUMN win_amount NUMERIC(18,2);
+
+
+CREATE TABLE bets (
+    bet_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    round_id UUID NOT NULL REFERENCES game_rounds(round_id),
+    wallet_id UUID NOT NULL REFERENCES wallets(wallet_id),
+    bet_amount NUMERIC(18,2) NOT NULL,
+    win_amount NUMERIC(18,2) DEFAULT 0,
+    bet_currency_id INT NOT NULL REFERENCES currencies(currency_id),
+    bet_status VARCHAR(20) DEFAULT 'placed'
+        CHECK (bet_status IN ('placed', 'settled', 'cancelled')),
+    placed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    settled_at TIMESTAMP
+);
+
+ALTER TABLE bets
+ADD CONSTRAINT unique_round_bet UNIQUE (round_id);
+
+
+CREATE TABLE bet_taxes (
+    bet_tax_id SERIAL PRIMARY KEY,
+    bet_id UUID NOT NULL REFERENCES bets(bet_id),
+    tax_rule_id INT REFERENCES tax_rules(tax_rule_id),
+    tax_amount NUMERIC(18,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- Jackpots
+-- =====================================================
+
+CREATE TABLE jackpots (
+    jackpot_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(tenant_id),
+    currency_id INT NOT NULL REFERENCES currencies(currency_id),
+    jackpot_name VARCHAR(100) NOT NULL,
+    jackpot_type VARCHAR(20) NOT NULL
+        CHECK (jackpot_type IN ('FIXED', 'PROGRESSIVE')),
+    seed_amount NUMERIC(18,2) NOT NULL,
+    current_amount NUMERIC(18,2) NOT NULL,
+    min_bet_contribution NUMERIC(12,2),
+    contribution_percentage NUMERIC(5,2),
+    is_active BOOLEAN DEFAULT TRUE,
+    last_won_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE jackpot_games (
+    jackpot_id UUID REFERENCES jackpots(jackpot_id),
+    game_id UUID REFERENCES games(game_id),
+    PRIMARY KEY (jackpot_id, game_id)
+);
+
+CREATE TABLE jackpot_contributions (
+    contribution_id SERIAL PRIMARY KEY,
+    jackpot_id UUID NOT NULL REFERENCES jackpots(jackpot_id),
+    bet_id UUID NOT NULL REFERENCES bets(bet_id),
+    contribution_amount NUMERIC(18,2) NOT NULL,
+    contributed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE jackpot_wins (
+    jackpot_win_id SERIAL PRIMARY KEY,
+    jackpot_id UUID NOT NULL REFERENCES jackpots(jackpot_id),
+    bet_id UUID NOT NULL REFERENCES bets(bet_id),
+    player_id UUID NOT NULL REFERENCES players(player_id),
+    win_amount NUMERIC(18,2) NOT NULL,
+    won_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================================================
+-- Bonuses
+-- =====================================================
+
+CREATE TABLE bonuses (
+    bonus_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(tenant_id),
+    bonus_name VARCHAR(100) NOT NULL,
+    bonus_type VARCHAR(30) NOT NULL
+        CHECK (bonus_type IN ('DEPOSIT', 'FREE_BET', 'CASHBACK', 'NO_DEPOSIT')),
+    bonus_amount NUMERIC(18,2),
+    bonus_percentage NUMERIC(5,2),
+    max_bonus_amount NUMERIC(18,2),
+    wagering_multiplier INT NOT NULL,
+    valid_from TIMESTAMP NOT NULL,
+    valid_to TIMESTAMP NOT NULL,
+    min_deposit_amount NUMERIC(18,2),
+    max_uses_per_player INT DEFAULT 1,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE bonus_usage (
+    bonus_usage_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    bonus_id UUID NOT NULL REFERENCES bonuses(bonus_id),
+    player_id UUID NOT NULL REFERENCES players(player_id),
+    wallet_id UUID NOT NULL REFERENCES wallets(wallet_id),
+    bonus_amount NUMERIC(18,2) NOT NULL,
+    wagering_required NUMERIC(18,2) NOT NULL,
+    wagering_completed NUMERIC(18,2) DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'active'
+        CHECK (status IN ('active', 'completed', 'expired', 'cancelled')),
+    granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP,
+    expired_at TIMESTAMP
+);
+
+-- =====================================================
+-- Payments
+-- =====================================================
+
+CREATE TABLE payment_gateways (
+    gateway_id SERIAL PRIMARY KEY,
+    gateway_name VARCHAR(100) NOT NULL UNIQUE,
+    gateway_type VARCHAR(30)
+        CHECK (gateway_type IN ('CARD', 'UPI', 'BANK_TRANSFER', 'WALLET', 'CRYPTO')),
+    provider VARCHAR(100),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE payments (
+    payment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    player_id UUID NOT NULL REFERENCES players(player_id),
+    tenant_id UUID NOT NULL REFERENCES tenants(tenant_id),
+    gateway_id INT NOT NULL REFERENCES payment_gateways(gateway_id),
+    amount NUMERIC(18,2) NOT NULL,
+    currency_id INT NOT NULL REFERENCES currencies(currency_id),
+    payment_status VARCHAR(20) DEFAULT 'pending'
+        CHECK (payment_status IN ('pending', 'successful', 'failed', 'refunded')),
+    gateway_reference VARCHAR(255),
+    initiated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP
+);
+
+CREATE TABLE deposits (
+    deposit_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    player_id UUID REFERENCES players(player_id),
+    tenant_id UUID REFERENCES tenants(tenant_id),
+    wallet_id UUID REFERENCES wallets(wallet_id),
+    amount NUMERIC(18,2),
+    currency_id INT REFERENCES currencies(currency_id),
+    status VARCHAR(20) DEFAULT 'pending'
+        CHECK (status IN ('pending','success','failed')),
+    gateway_id INT REFERENCES payment_gateways(gateway_id),
+    gateway_reference VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP
+);
+
+
+CREATE TABLE withdrawals (
+    withdrawal_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    player_id UUID NOT NULL REFERENCES players(player_id),
+    tenant_id UUID NOT NULL REFERENCES tenants(tenant_id),
+    wallet_id UUID NOT NULL REFERENCES wallets(wallet_id),
+    amount NUMERIC(18,2) NOT NULL,
+    currency_id INT NOT NULL REFERENCES currencies(currency_id),
+    status VARCHAR(20) DEFAULT 'requested'
+        CHECK (status IN (
+            'requested','kyc_pending','approved','rejected',
+            'processing','completed'
+        )),
+    requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP,
+    gateway_id INT REFERENCES payment_gateways(gateway_id),
+    gateway_reference VARCHAR(255),
+    rejection_reason TEXT
+);
+
+CREATE TABLE payment_refunds (
+    refund_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    payment_id UUID NOT NULL REFERENCES payments(payment_id),
+    amount NUMERIC(18,2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending'
+        CHECK (status IN ('pending', 'completed', 'failed')),
+    processed_at TIMESTAMP
+);
+
+-- =====================================================
+-- Compliance & Analytics
+-- =====================================================
+
+CREATE TABLE compliance_flags (
+    flag_id SERIAL PRIMARY KEY,
+    player_id UUID NOT NULL REFERENCES players(player_id),
+    tenant_id UUID NOT NULL REFERENCES tenants(tenant_id),
+    flag_type VARCHAR(50) NOT NULL,
+    severity VARCHAR(20) NOT NULL
+        CHECK (severity IN ('low','medium','high','critical')),
+    description TEXT,
+    detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'open'
+        CHECK (status IN ('open','reviewing','resolved','escalated')),
+    resolved_at TIMESTAMP,
+    resolved_by UUID REFERENCES users(user_id)
+);
+
+CREATE TABLE aml_reports (
+    aml_report_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    player_id UUID NOT NULL REFERENCES players(player_id),
+    tenant_id UUID NOT NULL REFERENCES tenants(tenant_id),
+    report_type VARCHAR(50) NOT NULL,
+    reason TEXT NOT NULL,
+    reported_amount NUMERIC(18,2),
+    currency_id INT REFERENCES currencies(currency_id),
+    reporting_period_start DATE,
+    reporting_period_end DATE,
+    status VARCHAR(20) DEFAULT 'draft'
+        CHECK (status IN ('draft','submitted','acknowledged')),
+    submitted_at TIMESTAMP,
+    reference_number VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE analytics_snapshots (
+    snapshot_id SERIAL PRIMARY KEY,
+    snapshot_date DATE NOT NULL,
+    tenant_id UUID REFERENCES tenants(tenant_id),
+    country_code CHAR(2) REFERENCES countries(country_code),
+    game_id UUID REFERENCES games(game_id),
+    total_bets NUMERIC(18,2),
+    total_wins NUMERIC(18,2),
+    ggr NUMERIC(18,2),
+    ngr NUMERIC(18,2),
+    total_bonus_issued NUMERIC(18,2),
+    total_bonus_converted NUMERIC(18,2),
+    rtp_percentage NUMERIC(5,2),
+    total_players INT,
+    active_players INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (snapshot_date, tenant_id, country_code, game_id)
+);
+
+select * from roles;
+select * from users;
+SELECT * from tenants;
+select * from tenant_countries;
+select * from tenant_games;
+select * from players;
+select * from wallets;
+select * from game_providers;
+select * from game_categories;
+select * from games;
+select * from tenant_providers;
+select * from transaction_types;
+
