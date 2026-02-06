@@ -8,6 +8,8 @@ import TenantGameLibrary from './pages/tenant/TenantGameLibrary';
 import TenantEnabledGames from './pages/tenant/TenantEnabledGames';
 import PlayerVerification from './pages/tenant/PlayerVerification';
 import MyVerification from './pages/tenant/MyVerification';
+import TenantDashboard from './pages/tenant/Dashboard';
+
 
 // Public
 import Login from './pages/Login';
@@ -16,6 +18,7 @@ import PlayerRegistration from './pages/public/PlayerRegistration';
 
 // Admin Layout
 import Layout from './components/Layout';
+
 
 // Provider Layout
 import ProviderLayout from './components/ProviderLayout';
@@ -28,12 +31,14 @@ import GamePlay from './pages/player/GamePlay';
 import WalletPage from './pages/player/WalletPage';
 import PlayerKYC from './pages/player/PlayerKYC';
 import History from './pages/player/History';
+import TransactionsPage from './pages/player/TransactionsPage';
 
 
 
 
 // Admin Pages
-import TenantRegistration from './pages/TenantRegistration';
+import SuperAdminHome from './pages/admin/SuperAdminHome';
+import TenantRegistration from './pages/admin/TenantRegistration';
 import TenantAdminForm from './pages/admin/TenantAdminForm';
 import GameProviderForm from './pages/admin/GameProviderForm';
 import GameRequests from './pages/admin/GameRequests';
@@ -67,20 +72,24 @@ function App() {
           <Route path="/register-player" element={<PlayerRegistration />} />
 
           {/* 🟥 SUPER ADMIN DASHBOARD */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/dashboard/kyc-requests" element={<KYCRequests />} />
-            <Route path="tenant-registration" element={<TenantRegistration />} />
-            <Route path="users/tenant-admin" element={<TenantAdminForm />} />
-            <Route path="users/game-provider" element={<GameProviderForm />} />
-            <Route path="game-requests" element={<GameRequests />} />
-          </Route>
+
+          
+          <Route path="/dashboard" element={<Layout />}>
+
+  {/* 👇 DEFAULT ROUTE */}
+  <Route
+    index
+    element={<Navigate to="super-admin-home" replace />}
+  />
+
+  <Route path="super-admin-home" element={<SuperAdminHome />} />
+  <Route path="kyc-requests" element={<KYCRequests />} />
+  <Route path="tenant-registration" element={<TenantRegistration />} />
+  <Route path="game-requests" element={<GameRequests />} />
+  <Route path="users/tenant-admin" element={<TenantAdminForm />} />
+  <Route path="users/game-provider" element={<GameProviderForm />} />
+
+</Route>
 
           {/* 🟦 TENANT CONSOLE */}
           <Route
@@ -91,6 +100,14 @@ function App() {
               </ProtectedRoute>
             }
           >
+ <Route
+    index
+    element={<Navigate to="dashboard" replace />}
+  />
+  
+  {/* The rest of your routes */}
+  <Route path="dashboard" element={<TenantDashboard />} />
+
             <Route path="library" element={<TenantGameLibrary />} />
             <Route path="my-games" element={<TenantEnabledGames />} />
             <Route path="players" element={<TenantPlayers />} />
@@ -127,8 +144,10 @@ function App() {
                       <Route path="play/:gameId" element={<GamePlay />} /> 
   
 <Route path="wallet" element={<WalletPage />} />
-<Route path="/player/kyc" element={<PlayerKYC />} />
+<Route path="kyc" element={<PlayerKYC />} />
 <Route path="history" element={<History />} />
+  <Route path="transactions" element={<TransactionsPage />} />
+
           </Route>
 
           {/* Redirect to lobby if someone just goes to /lobby directly */}

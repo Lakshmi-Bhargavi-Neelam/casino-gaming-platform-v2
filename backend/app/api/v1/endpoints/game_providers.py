@@ -10,6 +10,7 @@ from app.services.game_service import GameService
 from app.core.database import get_db
 from app.core.security import require_super_admin, get_current_user
 from app.models.game_provider import GameProvider
+from app.core.kyc_guard import enforce_kyc_verified
 
 router = APIRouter(tags=["Game Providers"])
 
@@ -27,6 +28,7 @@ def create_game_provider(
 
 @router.get("/my-games")
 def list_my_games(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    enforce_kyc_verified(current_user)
     provider = db.query(GameProvider).filter(GameProvider.provider_id == current_user.user_id).first()
     if not provider:
         raise HTTPException(status_code=403, detail="Not a registered game provider")

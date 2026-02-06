@@ -4,6 +4,7 @@ from uuid import UUID
 
 from app.core.database import get_db
 from app.core.security import require_tenant_admin
+from app.core.kyc_guard import enforce_kyc_verified
 
 router = APIRouter(tags=["Tenant Stats"])
 
@@ -11,8 +12,10 @@ router = APIRouter(tags=["Tenant Stats"])
 def get_tenant_stats(
     tenant_id: UUID,
     db: Session = Depends(get_db),
-    _=Depends(require_tenant_admin)
+    current_user = Depends(require_tenant_admin)
 ):
+    # 🔒 KYC Enforcement
+    enforce_kyc_verified(current_user)
     # ⚡ For now return dummy data
     return {
         "active_games": 5,

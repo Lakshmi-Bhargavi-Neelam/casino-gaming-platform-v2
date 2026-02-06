@@ -1,7 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
-import { UserCog, Building, Loader2 } from 'lucide-react';
+import { 
+  UserCog, 
+  Building, 
+  Loader2, 
+  User, 
+  Lock, 
+  ChevronDown, 
+  CheckCircle,
+  ShieldCheck
+} from 'lucide-react';
 import api from '../../lib/axios';
 
 export default function TenantAdminForm() {
@@ -9,11 +18,10 @@ export default function TenantAdminForm() {
   const [tenants, setTenants] = useState([]);
   const [fetchingTenants, setFetchingTenants] = useState(true);
 
-  // Fetch tenants on component load
   useEffect(() => {
     const fetchTenants = async () => {
       try {
-        const response = await api.get('/tenants'); // Adjust path to your tenants endpoint
+        const response = await api.get('/tenants');
         setTenants(response.data);
       } catch (error) {
         toast.error("Failed to load tenants list");
@@ -31,105 +39,161 @@ export default function TenantAdminForm() {
       reset();
     } catch (error) {
       const detail = error.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        toast.error(detail[0]?.msg || 'Validation error');
-      } else {
-        toast.error(detail || 'Failed to create tenant admin');
-      }
+      const msg = Array.isArray(detail) ? (detail[0]?.msg || 'Validation error') : (detail || 'Failed to create tenant admin');
+      toast.error(msg);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <UserCog className="text-indigo-600" />
+    <div className="w-full max-w-3xl mx-auto p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
+      {/* 1. Page Header */}
+      <header className="text-center md:text-left">
+        <h1 className="text-3xl font-bold text-white tracking-tight flex items-center justify-center md:justify-start gap-3">
+          <div className="p-2 bg-teal-500/10 rounded-lg">
+            <UserCog className="text-teal-400 w-8 h-8" />
+          </div>
           Register Tenant Admin
         </h1>
-        <p className="text-gray-500 mt-2">Assign an administrator to an existing Tenant.</p>
+        <p className="text-slate-400 mt-2 text-lg">
+          Assign a high-level administrator to manage an existing casino operator.
+        </p>
       </header>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* 2. Dark Card Container */}
+      <div className="relative bg-slate-800/50 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
+        
+        {/* Decorative Top Accent */}
+        <div className="h-1 w-full bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500"></div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="p-8 md:p-10 space-y-6">
           
-          {/* Tenant Selection Dropdown */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Select Tenant</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Building className="h-5 w-5 text-gray-400" />
+          {/* Tenant Selection */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+              Select Operator Tenant
+            </label>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors duration-200">
+                <Building className="h-5 w-5 text-slate-500 group-focus-within:text-teal-400" />
               </div>
               <select
                 {...register('tenant_id', { required: 'Please select a tenant' })}
                 disabled={fetchingTenants}
-                className="pl-10 block w-full rounded-lg border-gray-300 border p-2.5 focus:ring-indigo-500 focus:border-indigo-500 bg-white appearance-none"
+                className="appearance-none pl-12 pr-12 block w-full rounded-xl border border-slate-600 bg-slate-900/50 p-3.5 
+                text-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 
+                transition-all duration-200 shadow-inner disabled:opacity-50 cursor-pointer"
               >
-                <option value="">{fetchingTenants ? "Loading tenants..." : "--- Choose a Tenant ---"}</option>
+                <option value="" className="bg-slate-900 text-slate-400">
+                  {fetchingTenants ? "Retrieving tenants..." : "Select an operator..."}
+                </option>
                 {tenants.map((tenant) => (
-                  <option key={tenant.tenant_id} value={tenant.tenant_id}>
-                    {tenant.name} ({tenant.domain})
+                  <option key={tenant.tenant_id} value={tenant.tenant_id} className="bg-slate-900 text-white">
+                    {tenant.name} ({tenant.domain || 'no-domain'})
                   </option>
                 ))}
               </select>
-              {fetchingTenants && (
-                <div className="absolute inset-y-0 right-0 pr-8 flex items-center pointer-events-none">
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                </div>
-              )}
+              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-500">
+                {fetchingTenants ? <Loader2 size={18} className="animate-spin" /> : <ChevronDown size={18} />}
+              </div>
             </div>
-            {errors.tenant_id && <p className="text-red-500 text-xs mt-1">{errors.tenant_id.message}</p>}
+            {errors.tenant_id && <p className="text-red-400 text-xs mt-1 font-medium">{errors.tenant_id.message}</p>}
           </div>
 
+          {/* Name Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">First Name</label>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">First Name</label>
               <input
-                {...register('first_name', { required: 'First name is required' })}
-                className="block w-full rounded-lg border-gray-300 border p-2.5 focus:ring-indigo-500"
+                {...register('first_name', { required: 'Required' })}
+                placeholder="John"
+                className="block w-full rounded-xl border border-slate-600 bg-slate-900/50 p-3.5 text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all shadow-inner"
               />
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Last Name</label>
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Last Name</label>
               <input
-                {...register('last_name', { required: 'Last name is required' })}
-                className="block w-full rounded-lg border-gray-300 border p-2.5 focus:ring-indigo-500"
+                {...register('last_name', { required: 'Required' })}
+                placeholder="Doe"
+                className="block w-full rounded-xl border border-slate-600 bg-slate-900/50 p-3.5 text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all shadow-inner"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Admin Username</label>
-            <input
-              {...register('admin_username', { required: 'Username is required' })}
-              type="text"
-              className="block w-full rounded-lg border-gray-300 border p-2.5 focus:ring-indigo-500"
-              placeholder="e.g. jdoe_admin"
-            />
+          {/* Username */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Admin Username</label>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <User className="h-5 w-5 text-slate-500 group-focus-within:text-teal-400" />
+              </div>
+              <input
+                {...register('admin_username', { required: 'Username is required' })}
+                type="text"
+                autoComplete="off"
+                className="pl-12 block w-full rounded-xl border border-slate-600 bg-slate-900/50 p-3.5 
+                text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all shadow-inner"
+                placeholder="jdoe_admin"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-            <input
-              {...register('password', { 
-                required: 'Password is required', 
-                minLength: { value: 8, message: 'Min 8 characters required' } 
-              })}
-              type="password"
-              className="block w-full rounded-lg border-gray-300 border p-2.5 focus:ring-indigo-500"
-            />
-            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
+          {/* Password */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Secure Password</label>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-slate-500 group-focus-within:text-teal-400" />
+              </div>
+              <input
+                {...register('password', { 
+                  required: 'Password is required', 
+                  minLength: { value: 8, message: 'Minimum 8 characters' } 
+                })}
+                type="password"
+                className={`pl-12 block w-full rounded-xl border border-slate-600 bg-slate-900/50 p-3.5 
+                text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all shadow-inner
+                ${errors.password ? 'border-red-500' : ''}`}
+                placeholder="••••••••"
+              />
+            </div>
+            {errors.password && <p className="text-red-400 text-xs font-medium">{errors.password.message}</p>}
           </div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting || fetchingTenants}
-            className="w-full bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-50 flex justify-center items-center gap-2"
-          >
-            {isSubmitting && <Loader2 className="h-5 w-5 animate-spin" />}
-            {isSubmitting ? 'Creating Admin...' : 'Create Tenant Admin'}
-          </button>
+          {/* Submit Button */}
+          <div className="pt-4">
+            <button
+              type="submit"
+              disabled={isSubmitting || fetchingTenants}
+              className="w-full relative overflow-hidden group flex items-center justify-center gap-3 px-8 py-4 
+              rounded-xl text-base font-bold text-white bg-gradient-to-r from-teal-500 to-emerald-500 
+              hover:from-teal-400 hover:to-emerald-400 focus:outline-none focus:ring-2 focus:ring-teal-500 
+              focus:ring-offset-2 focus:ring-offset-slate-900 shadow-xl shadow-teal-500/20 
+              transition-all duration-300 disabled:opacity-50 transform hover:-translate-y-0.5 active:translate-y-0"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                  Finalize Admin Registration
+                </>
+              )}
+            </button>
+          </div>
         </form>
       </div>
+
+      {/* Helper Info Footer */}
+      <footer className="text-center">
+        <p className="text-slate-500 text-sm flex items-center justify-center gap-2">
+          <CheckCircle size={14} className="text-teal-500" />
+          Credentials will be active immediately upon creation.
+        </p>
+      </footer>
     </div>
   );
 }

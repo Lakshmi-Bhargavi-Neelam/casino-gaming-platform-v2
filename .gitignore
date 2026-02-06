@@ -1,1 +1,21 @@
-node_modules
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env
+.env.*
+
+# Uploads & temp files
+backend/uploads/
+backend/scripts/
+
+# Node / Frontend
+node_modules/
+dist/
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/

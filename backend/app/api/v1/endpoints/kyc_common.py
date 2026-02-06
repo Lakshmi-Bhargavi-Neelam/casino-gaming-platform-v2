@@ -32,14 +32,27 @@ async def submit_document(
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # 🔎 Version handling
-    previous_docs = db.query(KYCDocument).filter(
+    # 🔎 Version & Status handling
+    previous_active_doc = db.query(KYCDocument).filter(
+        KYCDocument.user_id == user.user_id,
+        KYCDocument.document_type == document_type,
+        KYCDocument.is_active == True
+    ).first()
+
+    # Determine status
+    # CASE 3 — Re-upload After Rejection
+    if previous_active_doc and previous_active_doc.verification_status == "rejected":
+        status = "re-submitted"
+    else:
+        # CASE 1 — First Time Upload (or replacing a non-rejected doc)
+        status = "submitted"
+
+    # Count all previous docs including inactive ones for versioning
+    all_prev_docs = db.query(KYCDocument).filter(
         KYCDocument.user_id == user.user_id,
         KYCDocument.document_type == document_type
-    ).all()
-
-    version = len(previous_docs) + 1
-    status = "submitted" if version == 1 else "re-submitted"
+    ).count()
+    version = all_prev_docs + 1
 
     # Deactivate old active doc
     db.query(KYCDocument).filter(

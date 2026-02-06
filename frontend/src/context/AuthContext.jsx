@@ -39,9 +39,9 @@ export const AuthProvider = ({ children }) => {
       if (role === 'GAME_PROVIDER') {
         navigate('/provider/dashboard');
       } else if (role === 'TENANT_ADMIN') {
-          navigate('/console/library');
+          navigate('/console/dashboard');
       } else if (role === 'SUPER_ADMIN') {
-        navigate('/dashboard/tenant-registration'); 
+          navigate('/dashboard');   // 👈 DEFAULT PAGE
       } else if (role === 'PLAYER') {
         navigate('/lobby');
       } else {

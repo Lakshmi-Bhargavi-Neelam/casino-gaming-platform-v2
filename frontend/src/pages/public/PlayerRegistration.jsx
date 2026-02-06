@@ -2,181 +2,374 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
-import { MapPin, Building, ChevronRight } from 'lucide-react';
-import api from '../../lib/axios';
+import { MapPin, Building, ChevronRight, Lock, Mail, ShieldCheck, Check, ArrowLeft, Globe } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import api from '../../lib/axios'; // Ensure this path is correct based on your folder structure
 
-// Mock list of supported countries (You can fetch this from API if available)
+// --- MOCK DATA ---
 const COUNTRIES = [
-  { code: 'US', name: 'United States' },
-  { code: 'GB', name: 'United Kingdom' },
-  { code: 'IN', name: 'India' },
-  { code: 'DE', name: 'Germany' },
+  { code: 'US', name: 'United States', flag: '🇺🇸', region: 'North America' },
+  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧', region: 'Europe' },
+  { code: 'IN', name: 'India', flag: '🇮🇳', region: 'Asia' },
+  { code: 'DE', name: 'Germany', flag: '🇩🇪', region: 'Europe' },
+  { code: 'CA', name: 'Canada', flag: '🇨🇦', region: 'North America' },
+  { code: 'AU', name: 'Australia', flag: '🇦🇺', region: 'Oceania' },
 ];
 
+// --- ANIMATION VARIANTS ---
+const slideVariants = {
+  enter: (direction) => ({
+    x: direction > 0 ? 50 : -50,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction) => ({
+    x: direction < 0 ? 50 : -50,
+    opacity: 0,
+  }),
+};
+
 export default function PlayerRegistration() {
-  const [step, setStep] = useState(1); // 1: Country, 2: Tenant, 3: Details
-  const [selectedCountry, setSelectedCountry] = useState('');
+  const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState(0); // For slide animation direction
+  const [selectedCountry, setSelectedCountry] = useState(null);
   const [availableTenants, setAvailableTenants] = useState([]);
   const [selectedTenant, setSelectedTenant] = useState(null);
-  
-  const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const [isLoadingTenants, setIsLoadingTenants] = useState(false);
 
-  // Step 1 -> 2: Fetch Tenants
-  const handleCountrySelect = async (countryCode) => {
-    setSelectedCountry(countryCode);
+  const navigate = useNavigate();
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm();
+  
+  // Password Strength Logic
+  const password = watch('password', '');
+  const getPasswordStrength = (pass) => {
+    if (!pass) return 0;
+    let score = 0;
+    if (pass.length > 5) score += 1;
+    if (pass.length > 8) score += 1;
+    if (/[A-Z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass)) score += 1;
+    return score; // 0 to 4
+  };
+  const passScore = getPasswordStrength(password);
+
+  // --- HANDLERS ---
+
+  const paginate = (newStep) => {
+    setDirection(newStep > step ? 1 : -1);
+    setStep(newStep);
+  };
+
+  const handleCountrySelect = async (country) => {
+    setSelectedCountry(country);
+    setIsLoadingTenants(true);
     try {
-      // Endpoint from your tenants.py: router.get("/by-country/{country_code}")
-      const response = await api.get(`/tenants/by-country/${countryCode}`);
+      const response = await api.get(`/tenants/by-country/${country.code}`);
       setAvailableTenants(response.data);
+      
       if (response.data.length === 0) {
-        toast.error("No casinos operate in this country yet.");
+        toast.error(`No casinos currently operate in ${country.name}`);
+        setIsLoadingTenants(false);
       } else {
-        setStep(2);
+        setIsLoadingTenants(false);
+        paginate(2);
       }
     } catch (error) {
-      toast.error("Failed to load casinos.");
+      console.error(error);
+      toast.error("Failed to load casinos. Please try again.");
+      setIsLoadingTenants(false);
     }
   };
 
-  // Step 2 -> 3: Select Tenant
   const handleTenantSelect = (tenant) => {
     setSelectedTenant(tenant);
-    setStep(3);
+    paginate(3);
   };
 
-  // Step 3: Final Submit
   const onSubmit = async (data) => {
     const payload = {
       tenant_id: selectedTenant.tenant_id,
-      country_code: selectedCountry,
+      country_code: selectedCountry.code,
       email: data.email,
       password: data.password
     };
 
     try {
-      // --- FIX IS HERE: Added '/register' to match your backend ---
-      await api.post('/players/register', payload); 
-      
-      toast.success('Registration successful! Please login.');
-      navigate('/login');
+      await api.post('/players/register', payload);
+      toast.success('Account created successfully!');
+      // Optional: Add a small delay for user to see success state
+      setTimeout(() => navigate('/login'), 1000);
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Registration failed');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden">
+    <div className="min-h-screen bg-[#0B0F1A] relative overflow-hidden flex flex-col items-center justify-center p-4 font-sans text-white">
+      
+      {/* Background Decor */}
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* Main Card */}
+      <div className="w-full max-w-lg relative z-10">
         
-        {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-6 text-center text-white">
-          <h1 className="text-2xl font-bold uppercase tracking-wider">Join The Action</h1>
-          <p className="opacity-90 text-sm mt-1">Player Registration • Step {step} of 3</p>
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 mb-4 shadow-lg shadow-emerald-500/20">
+            <span className="font-bold text-2xl">C</span>
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight mb-2">Join The Action</h1>
+          <p className="text-gray-400 text-sm">Create your account in 3 simple steps</p>
         </div>
 
-        <div className="p-6">
-          {/* STEP 1: Select Country */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                <MapPin className="mr-2 text-emerald-600" /> Select your location
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                {COUNTRIES.map((c) => (
-                  <button
-                    key={c.code}
-                    onClick={() => handleCountrySelect(c.code)}
-                    className="p-3 border rounded-lg hover:border-emerald-500 hover:bg-emerald-50 transition-all text-left"
-                  >
-                    <span className="font-bold block text-gray-700">{c.code}</span>
-                    <span className="text-sm text-gray-500">{c.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 2: Select Tenant */}
-          {step === 2 && (
-            <div className="space-y-4">
-              <button onClick={() => setStep(1)} className="text-sm text-gray-500 hover:underline mb-2">
-                &larr; Back to Country
-              </button>
-              <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                <Building className="mr-2 text-emerald-600" /> Select a Casino
-              </h3>
-              <div className="space-y-2">
-                {availableTenants.map((t) => (
-                  <button
-                    key={t.tenant_id}
-                    onClick={() => handleTenantSelect(t)}
-                    className="w-full flex items-center justify-between p-4 border rounded-lg hover:border-emerald-500 hover:shadow-md transition-all group"
-                  >
-                    <div className="text-left">
-                      <span className="font-bold text-gray-800 block">{t.tenant_name}</span>
-                      <span className="text-xs text-gray-500">{t.domain}</span>
-                    </div>
-                    <ChevronRight className="text-gray-300 group-hover:text-emerald-500" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: Form */}
-          {step === 3 && (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              <button onClick={() => setStep(2)} type="button" className="text-sm text-gray-500 hover:underline">
-                &larr; Back to Casinos
-              </button>
-              
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm">
-                <p><strong>Casino:</strong> {selectedTenant.tenant_name}</p>
-                <p><strong>Country:</strong> {selectedCountry}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  {...register('email', { 
-                    required: 'Email is required',
-                    validate: value => value.endsWith(selectedTenant.domain) || `Email must end with @${selectedTenant.domain}`
-                  })}
-                  type="email"
-                  className="block w-full rounded-lg border-gray-300 border p-2.5 focus:ring-emerald-500 focus:border-emerald-500"
-                  placeholder={`user@${selectedTenant.domain}`}
-                />
-                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input
-                  {...register('password', { required: 'Password is required', minLength: { value: 8, message: 'Min 8 chars' } })}
-                  type="password"
-                  className="block w-full rounded-lg border-gray-300 border p-2.5 focus:ring-emerald-500 focus:border-emerald-500"
-                />
-                {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full flex items-center justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50"
+        {/* Progress Bar */}
+        <div className="mb-8 flex justify-between items-center px-4">
+          {[1, 2, 3].map((s) => (
+            <div key={s} className="flex flex-col items-center relative z-10">
+              <div 
+                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                  step >= s ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-gray-800 text-gray-500 border border-white/10'
+                }`}
               >
-                {isSubmitting ? 'Creating Account...' : 'Register'}
-              </button>
-            </form>
-          )}
+                {step > s ? <Check size={16} /> : s}
+              </div>
+              <span className={`text-[10px] mt-2 font-semibold uppercase tracking-wider ${step >= s ? 'text-emerald-400' : 'text-gray-600'}`}>
+                {s === 1 ? 'Location' : s === 2 ? 'Casino' : 'Account'}
+              </span>
+            </div>
+          ))}
+          {/* Progress Line Background */}
+          <div className="absolute top-[16px] left-0 w-full h-[2px] bg-gray-800 -z-10 px-8">
+            <div 
+              className="h-full bg-emerald-500 transition-all duration-500 ease-out"
+              style={{ width: step === 1 ? '0%' : step === 2 ? '50%' : '100%' }}
+            />
+          </div>
         </div>
-        
-        <div className="bg-gray-50 p-4 text-center border-t border-gray-100">
-          <p className="text-sm text-gray-600">
-            Already have an account? <Link to="/login" className="text-emerald-600 font-medium hover:underline">Log in</Link>
+
+        {/* Content Container (Glassmorphism) */}
+        <div className="bg-[#1a2c38]/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden min-h-[400px] flex flex-col">
+          
+          {/* Back Button (Only for steps 2 & 3) */}
+          {step > 1 && (
+            <div className="px-6 pt-6">
+              <button 
+                onClick={() => paginate(step - 1)} 
+                className="text-gray-400 hover:text-white flex items-center text-sm transition-colors"
+              >
+                <ArrowLeft size={16} className="mr-1" /> Back
+              </button>
+            </div>
+          )}
+
+          <div className="p-6 flex-1">
+            <AnimatePresence custom={direction} mode="wait">
+              
+              {/* STEP 1: COUNTRY SELECTION */}
+              {step === 1 && (
+                <motion.div
+                  key="step1"
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.3 }}
+                >
+                  <h2 className="text-xl font-bold mb-6 flex items-center">
+                    <Globe className="mr-2 text-emerald-400" /> Where are you playing from?
+                  </h2>
+                  
+                  {isLoadingTenants ? (
+                    <div className="flex flex-col items-center justify-center py-10 space-y-4">
+                      <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-gray-400 animate-pulse">Checking available casinos...</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      {COUNTRIES.map((c) => (
+                        <button
+                          key={c.code}
+                          onClick={() => handleCountrySelect(c)}
+                          className="group relative p-4 bg-gray-800/50 hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/50 rounded-xl transition-all duration-300 text-left overflow-hidden"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-2xl">{c.flag}</span>
+                            <ArrowRightIcon className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all text-emerald-400" />
+                          </div>
+                          <span className="font-bold text-gray-200 group-hover:text-white block">{c.name}</span>
+                          <span className="text-xs text-gray-500 group-hover:text-emerald-300/70">{c.region}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* STEP 2: TENANT SELECTION */}
+              {step === 2 && (
+                <motion.div
+                  key="step2"
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.3 }}
+                >
+                  <h2 className="text-xl font-bold mb-6 flex items-center">
+                    <Building className="mr-2 text-emerald-400" /> Choose your Casino
+                  </h2>
+                  <div className="space-y-3">
+                    {availableTenants.map((t) => (
+                      <div
+                        key={t.tenant_id}
+                        onClick={() => handleTenantSelect(t)}
+                        className="group relative cursor-pointer bg-gradient-to-r from-gray-800 to-gray-800/50 hover:from-emerald-900/40 hover:to-gray-800 border border-white/5 hover:border-emerald-500/50 p-5 rounded-xl transition-all duration-300 shadow-lg hover:shadow-emerald-500/10"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-lg font-bold text-white group-hover:text-emerald-300 transition-colors">{t.tenant_name}</h3>
+                              <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-500/20">VERIFIED</span>
+                            </div>
+                            <p className="text-sm text-gray-400 mt-1 flex items-center gap-1">
+                              <ShieldCheck size={12} /> {t.domain}
+                            </p>
+                          </div>
+                          <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                            <ChevronRight size={18} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* STEP 3: REGISTRATION FORM */}
+              {step === 3 && (
+                <motion.div
+                  key="step3"
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.3 }}
+                >
+                  <h2 className="text-xl font-bold mb-6 flex items-center">
+                    <Lock className="mr-2 text-emerald-400" /> Secure your Account
+                  </h2>
+
+                  {/* Context Info */}
+                  <div className="bg-white/5 border border-white/10 rounded-lg p-3 mb-6 flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <span className="text-xl">{selectedCountry?.flag}</span>
+                      <span>{selectedTenant?.tenant_name}</span>
+                    </div>
+                    <button onClick={() => paginate(2)} className="text-emerald-400 text-xs hover:underline">Change</button>
+                  </div>
+
+                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                    
+                    {/* Email Input */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide ml-1">Email Address</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <input
+                          {...register('email', { 
+                            required: 'Email is required',
+                            validate: value => value.endsWith(selectedTenant?.domain) || `Email must end with @${selectedTenant?.domain}`
+                          })}
+                          type="email"
+                          className={`w-full bg-[#0B0F1A] border ${errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-emerald-500'} rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all`}
+                          placeholder={`user@${selectedTenant?.domain}`}
+                        />
+                      </div>
+                      {errors.email && <p className="text-red-400 text-xs ml-1">{errors.email.message}</p>}
+                    </div>
+
+                    {/* Password Input */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide ml-1">Password</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <input
+                          {...register('password', { 
+                            required: 'Password is required', 
+                            minLength: { value: 8, message: 'Minimum 8 characters' } 
+                          })}
+                          type="password"
+                          className={`w-full bg-[#0B0F1A] border ${errors.password ? 'border-red-500 focus:border-red-500' : 'border-gray-700 focus:border-emerald-500'} rounded-lg py-3 pl-10 pr-4 text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all`}
+                          placeholder="••••••••"
+                        />
+                      </div>
+                      
+                      {/* Password Strength Meter */}
+                      {password && (
+                        <div className="flex gap-1 mt-2 h-1">
+                          {[1, 2, 3, 4].map((i) => (
+                            <div 
+                              key={i} 
+                              className={`h-full flex-1 rounded-full transition-all duration-300 ${
+                                passScore >= i 
+                                  ? passScore < 3 ? 'bg-yellow-500' : 'bg-emerald-500' 
+                                  : 'bg-gray-700'
+                              }`} 
+                            />
+                          ))}
+                        </div>
+                      )}
+                      {errors.password && <p className="text-red-400 text-xs ml-1">{errors.password.message}</p>}
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 rounded-lg shadow-lg hover:shadow-emerald-500/25 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    >
+                      {isSubmitting ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        'Create Account'
+                      )}
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-gray-500 text-sm">
+            Already have an account?{' '}
+            <Link to="/login" className="text-emerald-400 font-semibold hover:text-emerald-300 transition-colors hover:underline">
+              Log In Here
+            </Link>
           </p>
         </div>
+
       </div>
     </div>
+  );
+}
+
+// Small helper component for the arrow icon
+function ArrowRightIcon({ className }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
+    </svg>
   );
 }

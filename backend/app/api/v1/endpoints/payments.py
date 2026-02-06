@@ -9,6 +9,7 @@ from app.services.wallet_service import WalletService
 from app.services.withdrawal_service import WithdrawalService
 from app.models.deposit import Deposit
 from app.models.withdrawal import Withdrawal
+from app.core.kyc_guard import enforce_kyc_verified
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -30,6 +31,7 @@ def player_deposit(
     db: Session = Depends(get_db),
     user = Depends(get_current_user)
 ):
+    enforce_kyc_verified(user)
     wallet = WalletService.get_wallet(db, user.user_id, "CASH")
 
     deposit = Deposit(
@@ -85,6 +87,7 @@ def get_pending_withdrawals(
 
 @router.post("/withdraw")
 def request_withdrawal(req: WithdrawalRequest, db: Session = Depends(get_db), user = Depends(get_current_user)):
+    enforce_kyc_verified(user)
     WithdrawalService.create_request(db, user.user_id, user.tenant_id, req.amount)
     db.commit()
     return {"message": "Withdrawal request submitted. Funds have been locked for review."}
@@ -97,6 +100,7 @@ def approve_withdrawal(
     db: Session = Depends(get_db),
     user = Depends(get_current_user) # Ensure only authorized users can approve
 ):
+    enforce_kyc_verified(user)
     # 🎯 Call the centralized service to handle status and wallet updates
     withdrawal = WithdrawalService.approve_withdrawal(db, withdrawal_id)
     

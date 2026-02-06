@@ -7,6 +7,7 @@ from app.core.security import get_db, require_tenant_admin
 from app.models.user import User
 from app.models.kyc_document import KYCDocument
 from app.models.role import Role
+from app.services.kyc_engine import recalculate_user_kyc_status
 
 router = APIRouter(prefix="/tenant-admin/kyc", tags=["Tenant Admin Player KYC"])
 
@@ -40,24 +41,10 @@ def tenant_admin_verify_player_doc(
 
     db.flush()
 
-    REQUIRED_DOCS = {"government_id", "proof_of_address"}
+    db.flush()
 
-    active_docs = db.query(KYCDocument).filter(
-        KYCDocument.user_id == player.user_id,
-        KYCDocument.is_active == True
-    ).all()
-
-    status_map = {d.document_type: d.verification_status for d in active_docs}
-
-    if any(status_map.get(t) == "rejected" for t in REQUIRED_DOCS):
-        player.kyc_status = "rejected"
-    elif any(
-        t not in status_map or status_map[t] in ["pending", "submitted", "re-submitted"]
-        for t in REQUIRED_DOCS
-    ):
-        player.kyc_status = "submitted"
-    else:
-        player.kyc_status = "verified"
+    # Recalculate global KYC status (using centralized logic)
+    recalculate_user_kyc_status(player, db)
 
     db.commit()
     return {"message": f"Player document {status}"}
