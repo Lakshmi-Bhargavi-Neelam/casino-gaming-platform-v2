@@ -29,10 +29,16 @@ class WalletService:
         elif ref_type in ["withdrawal", "withdrawal_rejection"]:
             exists = db.query(Withdrawal).filter_by(withdrawal_id=ref_id).first()
         
+        # 🎯 Support for Bonuses
         elif ref_type in ["bonus", "bonus_conversion"]:
            return # Skip strict DB check for these since they point to Bonus table
+        
+        # 🎯 SUPPORT FOR JACKPOTS (Added)
+        elif ref_type in ["jackpot", "jackpot_win"]:
+            return # Skip strict DB check for these since they point to Jackpot tables
+            
         else:
-            raise HTTPException(400, "Invalid reference type")
+            raise HTTPException(400, f"Invalid reference type: {ref_type}")
 
         if not exists:
             raise HTTPException(400, f"Invalid {ref_type} reference")

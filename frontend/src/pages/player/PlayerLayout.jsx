@@ -14,7 +14,9 @@ import {
   ChevronRight,
   Zap,
   TrendingUp,
-  Activity
+  Activity,
+  Trophy    // 🎯 Add this for the Jackpot Arena
+
 } from "lucide-react"; 
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/axios";
@@ -81,7 +83,11 @@ export default function PlayerLayout() {
             <History size={20} /> 
             <span className="font-bold">My Bets</span>
           </NavLink>
-
+ {/* 🎯 NEW: JACKPOT ARENA LINK */}
+ <NavLink to="/player/jackpots" className={navItemClass}>
+            <Trophy size={20} className="text-amber-500" /> 
+            <span className="font-bold">Jackpot Arena</span>
+          </NavLink>
           <div className="px-4 mt-8 mb-3 text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
             <TrendingUp size={12} /> Financials
           </div>

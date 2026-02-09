@@ -12,7 +12,10 @@ import TenantDashboard from './pages/tenant/Dashboard';
 import BonusManagement from "./pages/tenant/BonusManagement";
 import BonusList from "./pages/tenant/BonusList";
 
-
+// Jackpot Pages
+import JackpotManagement from './pages/tenant/JackpotManagement';
+import JackpotRegistry from './pages/tenant/JackpotRegistry';
+import JackpotHub from './pages/player/JackpotHub';
 
 // Public
 import Login from './pages/Login';
@@ -114,6 +117,8 @@ function App() {
   <Route path="dashboard" element={<TenantDashboard />} />
   <Route path="bonus-management" element={<BonusManagement />} />
   <Route path="bonuses" element={<BonusList />} />   {/* ✅ ADD THIS */}
+  <Route path="jackpot-management" element={<JackpotManagement />} />
+<Route path="jackpot-registry" element={<JackpotRegistry />} />
             <Route path="library" element={<TenantGameLibrary />} />
             <Route path="my-games" element={<TenantEnabledGames />} />
             <Route path="players" element={<TenantPlayers />} />
@@ -152,7 +157,7 @@ function App() {
 <Route path="wallet" element={<WalletPage />} />
 <Route path="bonuses" element={<Bonuses />} />
 <Route path="bonuses/:bonusUsageId" element={<BonusDetails />} />
-
+<Route path="jackpots" element={<JackpotHub />} />
 <Route path="kyc" element={<PlayerKYC />} />
 <Route path="history" element={<History />} />
   <Route path="transactions" element={<TransactionsPage />} />

@@ -17,6 +17,8 @@ from app.api.v1.endpoints.super_admin_kyc import router as super_admin_kyc_route
 from app.api.v1.endpoints.tenant_admin_kyc import router as tenant_admin_kyc_router
 from app.api.v1.endpoints import tenant_bonuses
 from app.api.v1.endpoints import player_bonuses
+from app.api.v1.endpoints import tenant_jackpots # 🎯 1. Import it
+from app.api.v1.endpoints import player_jackpots # 🎯 2. Import player side too
 
 
 
@@ -45,5 +47,8 @@ api_router.include_router(super_admin_kyc_router)  # already has /admin/kyc pref
 api_router.include_router(tenant_admin_kyc_router) # already has /tenant-admin/kyc prefix
 api_router.include_router(tenant_bonuses.router)
 api_router.include_router(player_bonuses.router)
+
+api_router.include_router(tenant_jackpots.router)
+api_router.include_router(player_jackpots.router)
 
 

@@ -12,7 +12,9 @@ import {
   ChevronRight,
   Activity,
   TrendingUp, // 🎯 Add this
-  Plus        // 🎯 Add this
+  Plus ,       // 🎯 Add this
+  Trophy,     // 🎯 Add this for Jackpot Management
+  BarChart3   // 🎯 Add this for Jackpot Registry
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -82,6 +84,21 @@ export default function TenantConsoleLayout() {
   <Gift size={20} />
   <span className="font-medium">Promotions</span>
 </NavLink>
+
+ {/* 🎯 NEW: PRIZE POOLS SECTION */}
+ <div className="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Prize Pools</div>
+
+<NavLink to="/console/jackpot-registry" className={navItemClass}>
+  <BarChart3 size={20} />
+  <span className="font-medium">Jackpot Analytics</span>
+</NavLink>
+
+<NavLink to="/console/jackpot-management" className={navItemClass}>
+  <Trophy size={20} />
+  <span className="font-medium">Jackpot Manager</span>
+</NavLink>
+
+<div className="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Compliance</div>
 
 
           <NavLink to="/console/player-verification" className={navItemClass}>

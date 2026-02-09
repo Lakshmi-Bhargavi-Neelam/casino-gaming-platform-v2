@@ -36,10 +36,11 @@ from app.models.game_round import GameRound
 from app.models.bet import Bet
 from app.models.bet_tax import BetTax
 
-# from app.models.jackpot import Jackpot
-# from app.models.jackpot_game import JackpotGame
-# from app.models.jackpot_contribution import JackpotContribution
-# from app.models.jackpot_win import JackpotWin
+from app.models.jackpot import Jackpot
+from app.models.jackpot_game import JackpotGame
+from app.models.jackpot_contribution import JackpotContribution
+from app.models.jackpot_win import JackpotWin
+
 
 # from app.models.bonus import Bonus
 # from app.models.bonus_usage import BonusUsage
