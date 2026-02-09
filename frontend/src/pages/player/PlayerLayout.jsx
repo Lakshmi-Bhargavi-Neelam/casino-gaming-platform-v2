@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { Outlet, NavLink } from "react-router-dom";
 import { Receipt } from "lucide-react";
+import { Gift } from "lucide-react";
+
 
 import { 
   Home, 
@@ -88,6 +90,12 @@ export default function PlayerLayout() {
             <Wallet size={20} /> 
             <span className="font-bold">Wallet</span>
           </NavLink>
+
+          <NavLink to="/player/bonuses" className={navItemClass}>
+  <Gift size={20} />
+  <span className="font-bold">Bonuses</span>
+</NavLink>
+
 
           <NavLink to="/player/transactions" className={navItemClass}>
   <Receipt size={20} />

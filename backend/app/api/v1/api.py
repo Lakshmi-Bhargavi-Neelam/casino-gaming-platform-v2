@@ -15,6 +15,8 @@ from app.api.v1.endpoints import payments
 from app.api.v1.endpoints.kyc_common import router as kyc_common_router
 from app.api.v1.endpoints.super_admin_kyc import router as super_admin_kyc_router
 from app.api.v1.endpoints.tenant_admin_kyc import router as tenant_admin_kyc_router
+from app.api.v1.endpoints import tenant_bonuses
+from app.api.v1.endpoints import player_bonuses
 
 
 
@@ -41,3 +43,7 @@ api_router.include_router(payments.router, tags=["Payments"])
 api_router.include_router(kyc_common_router, prefix="/kyc", tags=["KYC Common"])
 api_router.include_router(super_admin_kyc_router)  # already has /admin/kyc prefix
 api_router.include_router(tenant_admin_kyc_router) # already has /tenant-admin/kyc prefix
+api_router.include_router(tenant_bonuses.router)
+api_router.include_router(player_bonuses.router)
+
+

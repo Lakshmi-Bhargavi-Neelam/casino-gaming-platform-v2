@@ -9,6 +9,9 @@ import TenantEnabledGames from './pages/tenant/TenantEnabledGames';
 import PlayerVerification from './pages/tenant/PlayerVerification';
 import MyVerification from './pages/tenant/MyVerification';
 import TenantDashboard from './pages/tenant/Dashboard';
+import BonusManagement from "./pages/tenant/BonusManagement";
+import BonusList from "./pages/tenant/BonusList";
+
 
 
 // Public
@@ -32,6 +35,8 @@ import WalletPage from './pages/player/WalletPage';
 import PlayerKYC from './pages/player/PlayerKYC';
 import History from './pages/player/History';
 import TransactionsPage from './pages/player/TransactionsPage';
+import Bonuses from "./pages/player/Bonuses";
+import BonusDetails from "./pages/player/BonusDetails";
 
 
 
@@ -107,7 +112,8 @@ function App() {
   
   {/* The rest of your routes */}
   <Route path="dashboard" element={<TenantDashboard />} />
-
+  <Route path="bonus-management" element={<BonusManagement />} />
+  <Route path="bonuses" element={<BonusList />} />   {/* ✅ ADD THIS */}
             <Route path="library" element={<TenantGameLibrary />} />
             <Route path="my-games" element={<TenantEnabledGames />} />
             <Route path="players" element={<TenantPlayers />} />
@@ -144,6 +150,9 @@ function App() {
                       <Route path="play/:gameId" element={<GamePlay />} /> 
   
 <Route path="wallet" element={<WalletPage />} />
+<Route path="bonuses" element={<Bonuses />} />
+<Route path="bonuses/:bonusUsageId" element={<BonusDetails />} />
+
 <Route path="kyc" element={<PlayerKYC />} />
 <Route path="history" element={<History />} />
   <Route path="transactions" element={<TransactionsPage />} />

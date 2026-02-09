@@ -13,6 +13,8 @@ from app.game_engines.slot_engine import SlotEngine
 from app.services.wallet_service import WalletService
 from app.game_engines.dice_engine import DiceEngine # Ensure this is imported
 from app.game_engines.mines_engine import MinesEngine
+from app.services.bonus_service import BonusService # 🎯 1. IMPORT BONUS SERVICE
+
 
 
 class GameplayService:
@@ -126,8 +128,15 @@ class GameplayService:
                 bet_amount,
                 "bet",
                 "bet",
-                round_obj.round_id  # UUID FK safe
+                round_obj.round_id 
             )
+
+            # ─────────────────────────────
+            # 🎯 2. LINK BONUS LOGIC HERE
+            # ─────────────────────────────
+            # Every time a bet is successfully taken from CASH, 
+            # we contribute that amount to the bonus wagering progress.
+            BonusService.apply_wagering(db, player_id=player_id, bet_amount=bet_amount)
 
             # ─────────────────────────────
             # GAME ENGINE EXECUTION

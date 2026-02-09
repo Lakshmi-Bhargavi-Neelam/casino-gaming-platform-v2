@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { 
+  Gift,
   Gamepad2, 
   Layers, 
   LogOut, 
@@ -9,8 +10,10 @@ import {
   ShieldCheck, 
   UserCog,
   ChevronRight,
-  Activity
-} from "lucide-react"; 
+  Activity,
+  TrendingUp, // 🎯 Add this
+  Plus        // 🎯 Add this
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 export default function TenantConsoleLayout() {
@@ -69,6 +72,17 @@ export default function TenantConsoleLayout() {
           <NavLink to="/console/players" className={navItemClass}>
             <Users size={20} /> <span className="font-medium">Players</span>
           </NavLink>
+<div className="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Marketing</div>
+
+          <NavLink to="/console/bonus-list" className={navItemClass}>
+  <TrendingUp size={20} /> <span className="font-medium">Promotion Analytics</span>
+</NavLink>
+
+          <NavLink to="/console/bonus-management" className={navItemClass}>
+  <Gift size={20} />
+  <span className="font-medium">Promotions</span>
+</NavLink>
+
 
           <NavLink to="/console/player-verification" className={navItemClass}>
             <ShieldCheck size={20} />

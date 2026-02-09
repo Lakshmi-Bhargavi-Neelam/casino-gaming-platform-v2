@@ -10,21 +10,13 @@ from app.services.withdrawal_service import WithdrawalService
 from app.models.deposit import Deposit
 from app.models.withdrawal import Withdrawal
 from app.core.kyc_guard import enforce_kyc_verified
+from app.services.bonus_service import BonusService
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
-
-# -----------------------------
-# Request Schemas
-# -----------------------------
 
 class DepositRequest(BaseModel):
     amount: float
 
-class WithdrawalRequest(BaseModel):
-    amount: float
-
-
-# 💳 PLAYER DEPOSIT (Internal Credit)
 @router.post("/deposit", summary="Player deposit (internal credit)")
 def player_deposit(
     req: DepositRequest,
@@ -32,35 +24,68 @@ def player_deposit(
     user = Depends(get_current_user)
 ):
     enforce_kyc_verified(user)
-    wallet = WalletService.get_wallet(db, user.user_id, "CASH")
 
+    # 1️⃣ Get CASH wallet
+    cash_wallet = WalletService.get_wallet(db, user.user_id, "CASH")
+
+    # 2️⃣ Create Deposit record
     deposit = Deposit(
         player_id=user.user_id,
         tenant_id=user.tenant_id,
-        wallet_id=wallet.wallet_id,
+        wallet_id=cash_wallet.wallet_id,
         amount=req.amount,
-        currency_id=wallet.currency_id,
+        currency_id=cash_wallet.currency_id,
         status="success",
         completed_at=datetime.utcnow()
     )
     db.add(deposit)
     db.flush()
 
+    # 3️⃣ Credit CASH wallet
     WalletService.apply_transaction(
         db=db,
-        wallet=wallet,
+        wallet=cash_wallet,
         amount=req.amount,
         txn_code="deposit",
         ref_type="deposit",
         ref_id=deposit.deposit_id
     )
 
+    # 4️⃣ 🔥 BONUS CHECK - standardized to user.user_id
+    bonus = BonusService.get_eligible_deposit_bonus(
+        db=db,
+        tenant_id=user.tenant_id,
+        player_id=user.user_id,
+        deposit_amount=req.amount
+    )
+
+    if bonus:
+        # Standardized call: removed 'tenant_id' to match Service signature
+        BonusService.grant_deposit_bonus(
+            db=db,
+            bonus=bonus,
+            player_id=user.user_id,
+            deposit_amount=req.amount
+        )
+
     db.commit()
-    return {"message": "Deposit successful", "balance": wallet.balance}
+
+    return {
+        "message": "Deposit successful",
+        "cash_balance": float(cash_wallet.balance),
+        "bonus_granted": bool(bonus)
+    }
+
+# Withdrawal routes remain the same...
+
 
 
 # ➖ PLAYER WITHDRAWAL REQUEST
 
+
+class WithdrawalRequest(BaseModel):
+    amount: float
+    
 # app/api/endpoints/payments.py (or similar)
 
 @router.get("/admin/withdrawals/pending", summary="Get all pending withdrawal requests")

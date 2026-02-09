@@ -83,3 +83,12 @@ def require_any_admin(current_user: User = Depends(get_current_user)):
             detail="Admin privileges required"
         )
     return current_user
+
+def get_current_player(current_user: User = Depends(get_current_user)):
+    """ Allows access only to PLAYER users """
+    if not current_user.role or current_user.role.role_name != "PLAYER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="PLAYER privileges required"
+        )
+    return current_user
