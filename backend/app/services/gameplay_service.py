@@ -14,6 +14,8 @@ from app.services.wallet_service import WalletService
 from app.game_engines.dice_engine import DiceEngine # Ensure this is imported
 from app.game_engines.mines_engine import MinesEngine
 from app.services.bonus_service import BonusService # 🎯 1. IMPORT BONUS SERVICE
+from app.services.jackpot_service import JackpotService # 🎯 Import this
+from app.game_engines.crash_engine import CrashEngine 
 
 
 
@@ -38,7 +40,8 @@ class GameplayService:
         tenant_id: uuid.UUID,
         game_id: uuid.UUID,
         bet_amount: float,
-        **kwargs # 🎯 Catch extra inputs like 'player_choice'
+        opt_in: bool = False, # 🎯 Confirmed: Added opt_in arg
+        **kwargs 
     ):
         session = None
         try:
@@ -102,7 +105,7 @@ class GameplayService:
                 bet_amount=bet_amount
             )
             db.add(round_obj)
-            db.flush()  # Ensure round_id exists before wallet txn
+            db.flush() 
 
             # ─────────────────────────────
             # BET RECORD
@@ -120,8 +123,28 @@ class GameplayService:
             db.flush()
 
             # ─────────────────────────────
-            # WALLET DEBIT (BET)
+            # 🎯 JACKPOT SPLIT LOGIC
             # ─────────────────────────────
+            game_stake = bet_amount # Default: Full amount goes to game
+            
+            if opt_in:
+                # Import here to avoid circular imports if necessary
+                from app.services.jackpot_service import JackpotService
+                
+                # This calculates the split, updates the jackpot pool, records contribution,
+                # and returns the REMAINING amount to be used for the game (e.g. $99)
+                game_stake = JackpotService.process_progressive_bet(
+                    db,
+                     player_id,
+                     tenant_id, 
+                     bet_amount,
+                     bet_id=bet.bet_id 
+                )
+
+            # ─────────────────────────────
+            # WALLET DEBIT (FULL AMOUNT)
+            # ─────────────────────────────
+            # Note: We debit the user for the TOTAL they agreed to pay (e.g., $100)
             WalletService.apply_transaction(
                 db,
                 wallet,
@@ -132,16 +155,16 @@ class GameplayService:
             )
 
             # ─────────────────────────────
-            # 🎯 2. LINK BONUS LOGIC HERE
+            # BONUS WAGERING (GAME STAKE)
             # ─────────────────────────────
-            # Every time a bet is successfully taken from CASH, 
-            # we contribute that amount to the bonus wagering progress.
-            BonusService.apply_wagering(db, player_id=player_id, bet_amount=bet_amount)
+            # Fair Play: Only the amount risked on the game (e.g., $99) counts for wagering
+            BonusService.apply_wagering(db, player_id=player_id, bet_amount=game_stake)
 
             # ─────────────────────────────
-            # GAME ENGINE EXECUTION
+            # GAME ENGINE EXECUTION (GAME STAKE)
             # ─────────────────────────────
-            result = engine.run(bet_amount, **kwargs)
+            # Engine runs on the reduced stake ($99), so wins are calculated on that basis
+            result = engine.run(game_stake, **kwargs)
             win_amount = result["win_amount"]
 
             # ─────────────────────────────
@@ -171,20 +194,21 @@ class GameplayService:
 
             db.commit()
 
-
-            config = game.engine_config or {}
-
             return {
                 "round_id": round_obj.round_id,
                 "outcome": round_obj.outcome,
                 "win_amount": win_amount,
                 "balance": float(wallet.balance),
-                "engine_type": game.engine_type,  # 🎯 Add this to help the frontend switch UI
-                # 🎯 Spread the result_data so it works for ANY engine (Slot, Dice, etc.)
+                "engine_type": game.engine_type,
                 "game_data": result["result_data"], 
-                "engine_config": game.engine_config or {}
+                "engine_config": game.engine_config or {},
+                # Optional: Return split details for frontend debugging
+                "bet_split": {
+                    "total": bet_amount,
+                    "game_stake": game_stake,
+                    "jackpot_contribution": bet_amount - game_stake if opt_in else 0
+                }
             }
-
 
         except Exception as e:
             db.rollback()

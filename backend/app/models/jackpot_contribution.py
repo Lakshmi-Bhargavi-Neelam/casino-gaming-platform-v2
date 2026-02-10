@@ -1,18 +1,15 @@
 from sqlalchemy import Column, ForeignKey, Numeric, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
-
-from app.core.database import Base
+import uuid
+from app.models.base import Base 
 
 
 class JackpotContribution(Base):
     __tablename__ = "jackpot_contributions"
 
-    contribution_id = Column(
-        ForeignKey("jackpot_contributions.contribution_id"),
-        primary_key=True,
-        autoincrement=True
-    )
+    contribution_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
 
     jackpot_id = Column(
         UUID(as_uuid=True),

@@ -5,7 +5,10 @@ from uuid import UUID
 
 class JackpotCreate(BaseModel):
     jackpot_name: str = Field(..., min_length=3, max_length=100)
-    jackpot_type: Literal["FIXED", "SPONSORED"]
+    
+    # 🎯 FIX 1: Add PROGRESSIVE to the Literal list
+    jackpot_type: Literal["FIXED", "SPONSORED", "PROGRESSIVE"] 
+    
     currency_id: int
     seed_amount: float = Field(..., ge=0)
     
@@ -14,6 +17,10 @@ class JackpotCreate(BaseModel):
     
     # Required for SPONSORED
     deadline: Optional[datetime] = None
+
+    # 🎯 FIX 2: Add these fields for PROGRESSIVE
+    contribution_percentage: Optional[float] = Field(0, ge=0)
+    opt_in_required: Optional[bool] = False
 
 class JackpotContribution(BaseModel):
     amount: float = Field(..., gt=0)

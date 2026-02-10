@@ -6,7 +6,7 @@ import api from '../lib/axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
-export default function MinesGame({ gameId }) {
+export default function MinesGame({ gameId, optIn }) {
   const { balance, updateBalance } = useAuth();
   
   // Game Configuration
@@ -64,7 +64,9 @@ export default function MinesGame({ gameId }) {
       const res = await api.post('/gameplay/play', {
         game_id: gameId,
         bet_amount: betAmount,
-        successful_picks: successfulPicks // 🎯 Backend uses this for payout
+        successful_picks: successfulPicks, // 🎯 Backend uses this for payout
+        opt_in: optIn // <--- THIS IS THE KEY
+
       });
 
       const { win_amount, balance: newBalance } = res.data;

@@ -12,12 +12,17 @@ from app.core.kyc_guard import enforce_kyc_verified
 
 router = APIRouter(tags=["Gameplay"])
 
+
+# 🎯 UPDATE THIS CLASS HERE
 class PlayRequest(BaseModel):
     game_id: uuid.UUID
     bet_amount: float
-    player_choice: str | None = None   # 🎯 ADD THIS
-    target_multiplier: float | None = None   # 🎯 ADD FOR CRASHtarget_multiplier: float | None = None   # 🎯 ADD FOR CRASH
-    successful_picks: int | None = None     # Mines
+    player_choice: Optional[str] = None
+    target_multiplier: Optional[float] = None
+    successful_picks: Optional[int] = None
+    
+    # 🎯 ADD THIS FIELD
+    opt_in: bool = False 
 
 @router.post("/play")
 def play_game(req: PlayRequest, db: Session = Depends(get_db), user=Depends(get_current_user)):
@@ -28,6 +33,7 @@ def play_game(req: PlayRequest, db: Session = Depends(get_db), user=Depends(get_
         user.tenant_id,
         req.game_id,
         req.bet_amount,
+        opt_in=req.opt_in,   # 🎯 PASS THIS
         player_choice=req.player_choice,   # 🎯 PASS TO SERVICE
         target_multiplier=req.target_multiplier,   # 🎯 ADD THIS
         successful_picks=req.successful_picks

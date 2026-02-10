@@ -5,7 +5,7 @@ import { RotateCw } from 'lucide-react';
 import api from '../lib/axios';
 import { useAuth } from '../context/AuthContext';
 
-export default function SlotMachine({ gameId }) {
+export default function SlotMachine({ gameId, optIn }) {
   const { balance, updateBalance } = useAuth();
   const [reels, setReels] = useState(["7", "7", "7"]); // Initial display
   const [isSpinning, setIsSpinning] = useState(false);
@@ -20,7 +20,9 @@ export default function SlotMachine({ gameId }) {
     try {
       const res = await api.post('/gameplay/play', {
         game_id: gameId,
-        bet_amount: betAmount
+        bet_amount: betAmount,
+        opt_in: optIn // <--- THIS IS THE KEY
+
       });
 
 const { game_data, win_amount, balance: newBalance } = res.data;

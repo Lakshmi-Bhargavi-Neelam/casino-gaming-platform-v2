@@ -1,10 +1,17 @@
 from sqlalchemy.orm import Session
+from decimal import Decimal # 🎯 1. Ensure this is imported at the top
 from app.models.jackpot import Jackpot
+from app.models.player import Player
+from app.models.user import User  # 🎯 1. Add this import
+from app.models.bet import Bet # 🎯 Add this to force-load the "bets" table mapping
+from app.models.jackpot_win import JackpotWin # Ensure this is also here
 from app.models.jackpot_contribution import JackpotContribution as ContributionModel
 from app.services.wallet_service import WalletService
 from fastapi import HTTPException
 from datetime import datetime
 import uuid
+import random
+from decimal import Decimal
 from app.schemas.jackpot import JackpotCreate
 
 
@@ -22,6 +29,8 @@ class JackpotService:
             current_amount=payload.seed_amount,
             reset_cycle=payload.reset_cycle,
             deadline=payload.deadline,
+            contribution_percentage=payload.contribution_percentage,
+            opt_in_required=payload.opt_in_required,
             status="ACTIVE"
         )
         db.add(new_jackpot)
@@ -36,16 +45,22 @@ class JackpotService:
         if not jackpot or jackpot.jackpot_type != "SPONSORED" or jackpot.status != "ACTIVE":
             raise HTTPException(400, "This jackpot is not open for contributions")
         
-        if jackpot.deadline and datetime.utcnow() > jackpot.deadline:
+        now_local = datetime.now()
+            
+            # Simple direct comparison (Naive vs Naive)
+        if now_local > jackpot.deadline:
             raise HTTPException(400, "The deadline for this jackpot has passed")
+
+        # 🎯 FIX: Convert float to Decimal explicitly
+        amount_dec = Decimal(str(amount))
 
         # 1. Deduct from Player CASH wallet
         wallet = WalletService.get_wallet(db, player_id, "CASH")
-        # Ensure your WalletService has a 'jackpot_contribution' txn type code
+        
         WalletService.apply_transaction(
             db=db,
             wallet=wallet,
-            amount=amount,
+            amount=amount, # WalletService converts this internally, so float is fine here
             txn_code="jackpot_contribution", 
             ref_type="jackpot",
             ref_id=jackpot_id
@@ -55,12 +70,13 @@ class JackpotService:
         contribution = ContributionModel(
             jackpot_id=jackpot_id,
             player_id=player_id,
-            amount=amount
+            amount=amount_dec # Store as Decimal
         )
         db.add(contribution)
 
         # 3. Update the Live Jackpot Pool
-        jackpot.current_amount += amount
+        # 🎯 THIS WAS THE ERROR LINE: Now we add Decimal + Decimal
+        jackpot.current_amount += amount_dec
         
         db.commit()
         return {"message": "Contribution successful", "new_pool_total": float(jackpot.current_amount)}
@@ -78,28 +94,35 @@ class JackpotService:
 
         # 2. Logic to select the winner based on type
         if jackpot.jackpot_type == "FIXED":
-            # Pick any random player belonging to this tenant
-            players = db.query(Player).filter(Player.tenant_id == jackpot.tenant_id).all()
+            # 🎯 2. FIXED QUERY: Join Player with User to filter by tenant_id
+            # We match Player.player_id with User.user_id
+            players = db.query(Player).join(
+                User, Player.player_id == User.user_id
+            ).filter(
+                User.tenant_id == jackpot.tenant_id
+            ).all()
+
             if not players:
                 raise HTTPException(status_code=404, detail="No eligible players found for this tenant")
+            
             winner_id = random.choice(players).player_id
             
         elif jackpot.jackpot_type == "SPONSORED":
             # Pick only from people who actually contributed money to this pool
-            contributors = db.query(JackpotContribution.player_id).filter(
-                JackpotContribution.jackpot_id == jackpot_id
+            contributors = db.query(ContributionModel.player_id).filter(
+                ContributionModel.jackpot_id == jackpot_id
             ).distinct().all()
             
             if not contributors:
                 raise HTTPException(status_code=404, detail="No contributors found for this sponsored jackpot")
             
-            # contributors is a list of tuples like [ (uuid,), (uuid,) ]
             winner_id = random.choice(contributors)[0]
 
         # 3. Finalize the Win
         if winner_id:
             try:
-                # A. Create Jackpot Win Record
+                # A. Create Jackpot Win Record (Ensure JackpotWin model is imported if not already)
+                from app.models.jackpot_win import JackpotWin 
                 new_win = JackpotWin(
                     jackpot_id=jackpot_id,
                     player_id=winner_id,
@@ -114,7 +137,7 @@ class JackpotService:
                     db=db,
                     wallet=winner_wallet,
                     amount=float(win_amount),
-                    txn_code="jackpot_payout", # Ensure this code exists in transaction_types
+                    txn_code="jackpot_payout", 
                     ref_type="jackpot_win",
                     ref_id=jackpot_id
                 )
@@ -122,11 +145,9 @@ class JackpotService:
                 # C. Update Jackpot State
                 jackpot.last_won_at = datetime.utcnow()
                 
-                # If SPONSORED, we mark it as COMPLETED so no one else can contribute
                 if jackpot.jackpot_type == "SPONSORED":
                     jackpot.status = "COMPLETED"
                 else:
-                    # If FIXED, reset the pool back to seed amount for the next cycle
                     jackpot.current_amount = jackpot.seed_amount
 
                 db.commit()
@@ -138,3 +159,56 @@ class JackpotService:
                 raise HTTPException(status_code=500, detail="Failed to process jackpot win")
 
         return None
+
+    @staticmethod
+    def process_progressive_bet(db: Session, 
+    player_id: uuid.UUID, 
+    tenant_id: uuid.UUID, 
+    total_bet: float,
+    bet_id: uuid.UUID):
+        """
+        Takes the total bet, splits it, updates the jackpot pool, 
+        and returns the remaining amount for the game engine.
+        """
+        # 1. Find ACTIVE PROGRESSIVE Jackpot for this tenant
+        jackpot = db.query(Jackpot).filter(
+            Jackpot.tenant_id == tenant_id,
+            Jackpot.jackpot_type == 'PROGRESSIVE',
+            Jackpot.status == 'ACTIVE'
+        ).first()
+
+        # If user opted in but no jackpot exists, we just return full amount (or raise error)
+        if not jackpot:
+            # Option A: Fail strict
+            # raise HTTPException(400, "No active progressive jackpot found.")
+            # Option B: Play normally (safe fallback)
+            return float(total_bet)
+
+        # 2. Calculate the split
+         # 🎯 FIX: Explicit Decimal conversion for the percentage
+        total_dec = Decimal(str(total_bet))
+        percent_dec = Decimal(str(jackpot.contribution_percentage or 0)) # Ensure it's not None
+        
+        # Calculate contribution (e.g. 1% of $100 = $1)
+        contrib_amount = total_dec * (jackpot.contribution_percentage / 100)
+        
+        # Remaining stake for game (e.g. $99)
+        game_stake = total_dec - contrib_amount
+
+        # 3. Update Jackpot Pool
+        jackpot.current_amount += contrib_amount
+
+        # 4. Log Contribution (This marks player as eligible for this specific draw)
+        # Note: We link this contribution to the 'bet' later in gameplay_service, 
+        # but for now we just record the money movement.
+        contribution = ContributionModel(
+            jackpot_id=jackpot.jackpot_id,
+            player_id=player_id,
+            amount=contrib_amount,
+            bet_id=bet_id # 🎯 This now correctly points to the 'bets' table
+
+            # We will update bet_id later if needed, or leave null for pool tracking
+        )
+        db.add(contribution)
+
+        return float(game_stake)

@@ -2,7 +2,7 @@ from sqlalchemy import Column, ForeignKey, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
-from app.core.database import Base
+from app.models.base import Base 
 
 
 class JackpotGame(Base):

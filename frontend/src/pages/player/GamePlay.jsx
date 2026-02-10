@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ShieldCheck, DoorOpen } from 'lucide-react';
+import { ChevronLeft, ShieldCheck, DoorOpen, Trophy } from 'lucide-react'; // 🎯 Import Trophy
 import api from '../../lib/axios';
 import { toast } from 'react-hot-toast';
 
-// 🎯 Import separate game components
+// Import separate game components
 import SlotMachine from '../../components/SlotMachine';
 import DiceGame from '../../components/DiceGame';
 import CrashGame from '../../components/CrashGame';
@@ -17,6 +17,11 @@ export default function GamePlay() {
   const [loading, setLoading] = useState(true);
   const [ending, setEnding] = useState(false);
 
+  // 🎯 NEW STATE: Jackpot Logic
+  const [activeProgressive, setActiveProgressive] = useState(null); 
+  const [optIn, setOptIn] = useState(false); 
+
+  // 1. Fetch Game Details
   useEffect(() => {
     const fetchGameDetails = async () => {
       try {
@@ -32,6 +37,21 @@ export default function GamePlay() {
     fetchGameDetails();
   }, [gameId]);
 
+  // 🎯 2. Fetch Active Progressive Jackpot
+  useEffect(() => {
+    const checkJackpotStatus = async () => {
+      try {
+        const res = await api.get('/player/jackpots/active');
+        // Look for Type 2 (PROGRESSIVE)
+        const progressive = res.data.find(j => j.jackpot_type === 'PROGRESSIVE');
+        setActiveProgressive(progressive); 
+      } catch (err) {
+        console.error("Jackpot check failed");
+      }
+    };
+    checkJackpotStatus();
+  }, []);
+
   const handleEndSession = async () => {
     setEnding(true);
     try {
@@ -46,34 +66,29 @@ export default function GamePlay() {
     }
   };
 
-  // 🎯 Dynamic UI Switch based on engine_type
   const renderGameUI = () => {
+    // 🎯 PASS optIn PROP TO ALL GAMES
+    const commonProps = { gameId, gameName: game.game_name, optIn };
 
-  console.log("Current Game Object:", game);
-    // Check for both standardized and variations of engine names
     switch (game.engine_type?.toLowerCase()) {
       case 'slot_engine':
       case 'slot':
-        return <SlotMachine gameId={gameId} gameName={game.name} />;
+        return <SlotMachine {...commonProps} />;
       
       case 'dice_engine':
       case 'dice':
-        return <DiceGame gameId={gameId} gameName={game.name} />;
+        return <DiceGame {...commonProps} />;
 
       case 'crash_engine':
       case 'crash':
-        return <CrashGame gameId={gameId} gameName={game.game_name} />;
+        return <CrashGame {...commonProps} />;
 
       case 'mines_engine':
       case 'mines':
-        return <MinesGame gameId={gameId} />;
+        return <MinesGame {...commonProps} />;
       
       default:
-        return (
-          <div className="bg-slate-900 rounded-3xl border border-slate-800 p-20 text-center">
-            <p className="text-slate-400">Game engine "{game.engine_type}" not supported yet.</p>
-          </div>
-        );
+        return <div className="text-slate-500 text-center">Engine not supported</div>;
     }
   };
 
@@ -82,21 +97,13 @@ export default function GamePlay() {
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-4">
-      {/* 🛠️ SHARED TOP BAR */}
+      {/* Top Bar */}
       <div className="flex items-center justify-between px-2">
-        <button
-          onClick={() => navigate('/lobby')}
-          className="flex items-center gap-2 text-slate-400 hover:text-white transition text-sm font-medium"
-        >
+        <button onClick={() => navigate('/lobby')} className="flex items-center gap-2 text-slate-400 hover:text-white transition text-sm font-medium">
           <ChevronLeft size={18} /> Back to Lobby
         </button>
-
         <div className="flex items-center gap-6">
-          <button
-            onClick={handleEndSession}
-            disabled={ending}
-            className="flex items-center gap-2 px-4 py-1.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500/20 transition"
-          >
+          <button onClick={handleEndSession} disabled={ending} className="flex items-center gap-2 px-4 py-1.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500/20 transition">
             <DoorOpen size={14} /> {ending ? 'ENDING...' : 'END SESSION'}
           </button>
           <div className="flex items-center gap-2">
@@ -106,7 +113,33 @@ export default function GamePlay() {
         </div>
       </div>
 
-      {/* 🚀 DYNAMIC GAME COMPONENT */}
+      {/* 🎯 JACKPOT OPT-IN TOGGLE (Only shows if Jackpot Exists) */}
+      {activeProgressive && (
+         <div className="mx-2 p-4 bg-gradient-to-r from-indigo-900 to-purple-900 rounded-xl border border-indigo-500/50 flex items-center justify-between shadow-lg animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-3">
+               <div className="p-2 bg-indigo-500 rounded-lg text-white">
+                  <Trophy size={20} />
+               </div>
+               <div>
+                  <p className="text-white font-bold text-sm uppercase italic">Compete for Progressive Jackpot</p>
+                  <p className="text-indigo-200 text-[10px] font-medium">
+                     {activeProgressive.contribution_percentage}% of bet goes to pool (${Number(activeProgressive.current_amount).toLocaleString()})
+                  </p>
+               </div>
+            </div>
+            
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={optIn} 
+                onChange={(e) => setOptIn(e.target.checked)} 
+                className="sr-only peer" 
+              />
+              <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-500"></div>
+            </label>
+         </div>
+       )}
+
       <div className="min-h-[600px]">
         {renderGameUI()}
       </div>

@@ -1,28 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../lib/axios';
-import { Trophy, TrendingUp, Users, Clock, Plus, Loader2, Sparkles, Zap, Coins } from 'lucide-react';
+import { 
+  Trophy, TrendingUp, Users, Clock, Plus, 
+  Loader2, Sparkles, Zap, Coins, Star, Activity 
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 
 export default function JackpotHub() {
   const [jackpots, setJackpots] = useState([]);
+  const [history, setHistory] = useState({ recent_winners: [], my_wins: [] }); // 🎯 Added history state
   const [loading, setLoading] = useState(true);
   const { balance, updateBalance } = useAuth();
 
-  const fetchJackpots = async () => {
+  const fetchData = async () => {
     try {
-      const res = await api.get('/player/jackpots/active');
-      setJackpots(res.data);
+      const [jackpotRes, historyRes] = await Promise.all([
+        api.get('/player/jackpots/active'),
+        api.get('/player/jackpots/history') // 🎯 Fetching win history
+      ]);
+      setJackpots(jackpotRes.data);
+      setHistory(historyRes.data);
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchJackpots(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleContribute = async (id, amount) => {
     try {
       const res = await api.post(`/player/jackpots/${id}/contribute`, { amount });
       toast.success("Pool increased! Contribution recorded.");
-      fetchJackpots();
+      fetchData(); // Refresh everything
       // Sync wallet balance
       const walletRes = await api.get('/gameplay/wallet/dashboard');
       updateBalance(walletRes.data.balance);
@@ -50,6 +58,7 @@ export default function JackpotHub() {
         </div>
       </header>
 
+      {/* --- LIVE JACKPOTS GRID --- */}
       {jackpots.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {jackpots.map((jp, index) => (
@@ -114,6 +123,67 @@ export default function JackpotHub() {
            <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-sm">No Active Jackpots in this Territory</p>
         </div>
       )}
+
+      {/* --- 🎯 CHAMPIONS GALLERY SECTION (Win History) --- */}
+      <section className="mt-20 space-y-8 animate-in slide-in-from-bottom-10 duration-1000">
+        <div className="flex items-center gap-4 px-4">
+           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+           <h2 className="text-xl font-black text-slate-500 uppercase tracking-[0.3em] italic">Champions Gallery</h2>
+           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* 1. Network Wins Feed */}
+          <div className="bg-slate-900/40 border border-slate-800 p-8 rounded-[2.5rem] shadow-xl backdrop-blur-md">
+            <h3 className="text-white font-black text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+              <Activity size={14} className="text-teal-500" /> Recent Network Wins
+            </h3>
+            <div className="space-y-4">
+              {history.recent_winners.length > 0 ? history.recent_winners.map((win, i) => (
+                <div key={i} className="flex items-center justify-between p-4 bg-slate-950/50 rounded-2xl border border-slate-800 hover:border-teal-500/20 transition-all group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-500 border border-slate-700">W</div>
+                    <div>
+                       <span className="text-xs font-bold text-slate-300 block leading-none">***{win.user.email.split('@')[0].slice(-3)}</span>
+                       <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter">Claimed {win.jackpot.jackpot_name}</span>
+                    </div>
+                  </div>
+                  <span className="text-emerald-400 font-black tracking-tighter tabular-nums group-hover:scale-110 transition-transform">${win.win_amount.toLocaleString()}</span>
+                </div>
+              )) : (
+                <p className="text-[10px] text-slate-600 font-black uppercase text-center py-10 tracking-widest">Awaiting the first champion...</p>
+              )}
+            </div>
+          </div>
+
+          {/* 2. Personalized "Your Victories" Section */}
+          <div className="bg-gradient-to-br from-teal-500/5 to-indigo-500/5 border border-teal-500/10 p-8 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
+            <div className="absolute top-0 right-0 p-8 opacity-5"><Trophy size={140} className="text-teal-400" /></div>
+            <h3 className="text-white font-black text-xs uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
+              <Star size={14} className="text-amber-500 fill-amber-500" /> Your Victories
+            </h3>
+            <div className="space-y-4 relative z-10">
+              {history.my_wins.length > 0 ? history.my_wins.map((win, i) => (
+                 <div key={i} className="bg-teal-500 text-slate-950 p-5 rounded-2xl flex items-center justify-between shadow-xl transform hover:-translate-x-1 transition-all duration-300">
+                   <div>
+                      <p className="text-[9px] font-black uppercase tracking-widest leading-none text-slate-950/70">Win Authenticated</p>
+                      <p className="text-xs font-black mt-1 uppercase tracking-tighter">{new Date(win.won_at).toLocaleDateString(undefined, {month: 'long', day:'numeric'})}</p>
+                   </div>
+                   <p className="text-2xl font-black italic tracking-tighter tabular-nums">${win.win_amount.toLocaleString()}</p>
+                 </div>
+              )) : (
+                <div className="py-12 text-center flex flex-col items-center gap-3">
+                   <div className="w-10 h-10 rounded-full border border-slate-800 flex items-center justify-center opacity-30">
+                      <Plus size={16} />
+                   </div>
+                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">The Arena is calling for a hero...</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }

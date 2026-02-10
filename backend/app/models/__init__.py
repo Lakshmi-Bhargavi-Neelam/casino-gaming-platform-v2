@@ -42,8 +42,8 @@ from app.models.jackpot_contribution import JackpotContribution
 from app.models.jackpot_win import JackpotWin
 
 
-# from app.models.bonus import Bonus
-# from app.models.bonus_usage import BonusUsage
+from app.models.bonus import Bonus
+from app.models.bonus_usage import BonusUsage
 
 # from app.models.payment_refund import PaymentRefund
 

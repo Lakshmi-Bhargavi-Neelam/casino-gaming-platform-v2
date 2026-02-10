@@ -115,7 +115,7 @@ export default function PlayerLayout() {
           </NavLink>
         </nav>
 
-        {/* User Quick Info & Logout */}
+       {/* User Quick Info & Logout */}
         <div className="p-4 bg-slate-900/80 border-t border-slate-800">
           <button 
             onClick={logout}

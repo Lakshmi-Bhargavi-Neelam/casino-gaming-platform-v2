@@ -1,18 +1,16 @@
 from sqlalchemy import Column, ForeignKey, Numeric, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
-
-from app.core.database import Base
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from app.models.base import Base 
+import uuid
 
 
 class JackpotWin(Base):
     __tablename__ = "jackpot_wins"
 
-    jackpot_win_id = Column(
-        ForeignKey("jackpot_wins.jackpot_win_id"),
-        primary_key=True,
-        autoincrement=True
-    )
+    jackpot_win_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
 
     jackpot_id = Column(
         UUID(as_uuid=True),
@@ -39,3 +37,13 @@ class JackpotWin(Base):
         DateTime,
         server_default=func.now()
     )
+
+    player_id = Column(UUID(as_uuid=True), ForeignKey("players.player_id"), nullable=False)
+    # 🎯 ADD THESE RELATIONSHIPS
+    jackpot = relationship("Jackpot")
+    
+    # This assumes Player and User share the same ID (1-to-1)
+    # We map 'user' to the User model using the player_id foreign key
+    user = relationship("User", primaryjoin="JackpotWin.player_id==User.user_id", foreign_keys=[player_id])
+
+
