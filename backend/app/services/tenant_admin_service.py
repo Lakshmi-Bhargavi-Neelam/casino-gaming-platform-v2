@@ -5,41 +5,42 @@ from app.models.user import User
 from app.models.tenant import Tenant
 from app.models.role import Role
 from app.core.security import get_password_hash
-
+from app.services.player_service import PlayerService
 
 class TenantAdminService:
 
     @staticmethod
     def create_tenant_admin(db: Session, payload):
-        tenant = db.query(Tenant).filter(
-            Tenant.tenant_id == payload.tenant_id
-        ).first()
+        # 1️⃣ Strict Domain Validation
+        PlayerService.validate_email_domain(payload.email)
 
+        tenant = db.query(Tenant).filter(Tenant.tenant_id == payload.tenant_id).first()
         if not tenant:
             raise HTTPException(404, "Tenant not found")
 
-        # Enforce one admin per tenant
+        # 2️⃣ Check if the provided real email is already used by anyone
+        existing_email = db.query(User).filter(
+            User.email == payload.email,
+            User.tenant_id == payload.tenant_id
+        ).first()        
+        if existing_email:
+             raise HTTPException(status.HTTP_409_CONFLICT, "Email is already registered")
+
+        # 3️⃣ Enforce one admin per tenant (Business rule)
         existing_admin = db.query(User).filter(
             User.tenant_id == tenant.tenant_id,
             User.role.has(role_name="TENANT_ADMIN")
         ).first()
 
         if existing_admin:
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                "Tenant admin already exists"
-            )
+            raise HTTPException(status.HTTP_409_CONFLICT, "This tenant already has an administrator assigned")
 
-        email = f"{payload.admin_username}@{tenant.domain}"
-
-        role = db.query(Role).filter(
-            Role.role_name == "TENANT_ADMIN"
-        ).first()
+        role = db.query(Role).filter(Role.role_name == "TENANT_ADMIN").first()
 
         user = User(
             first_name=payload.first_name,
             last_name=payload.last_name,
-            email=email,
+            email=payload.email, # Use the real email provided in the form
             password_hash=get_password_hash(payload.password),
             role_id=role.role_id,
             tenant_id=tenant.tenant_id,
@@ -50,7 +51,4 @@ class TenantAdminService:
         db.commit()
         db.refresh(user)
 
-        return {
-            "tenant_admin_id": user.user_id,
-            "email": email
-        }
+        return {"tenant_admin_id": user.user_id, "email": user.email}

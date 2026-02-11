@@ -21,19 +21,30 @@ export default function PlayerLobby() {
   const [activeCategory, setActiveCategory] = useState('All');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchLobby = async () => {
-      try {
-        const response = await api.get('/player/player/lobby-games'); 
-        setGames(response.data);
-      } catch (error) {
-        console.error("Lobby error:", error);
-      } finally {
-        setLoading(false);
+// Inside src/pages/player/PlayerLobby.jsx
+
+useEffect(() => {
+  const fetchLobby = async () => {
+    try {
+      // 🎯 FIX: Get the ID we saved when clicking "Enter Casino"
+      const activeTenantId = localStorage.getItem('active_tenant_id');
+      
+      if (!activeTenantId) {
+        navigate('/player/casinos');
+        return;
       }
-    };
-    fetchLobby();
-  }, []);
+
+      // 🎯 FIX: Send the tenant_id to the backend
+      const response = await api.get(`/player/player/lobby-games?tenant_id=${activeTenantId}`); 
+      setGames(response.data);
+    } catch (error) {
+      console.error("Lobby error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  fetchLobby();
+}, [navigate]);
 
   const filteredGames = games.filter(g => 
     g.game_name.toLowerCase().includes(searchTerm.toLowerCase())

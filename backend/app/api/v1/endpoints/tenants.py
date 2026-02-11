@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from uuid import UUID
-
+import uuid
 from app.core.database import get_db
 from app.schemas.tenant import TenantCreate, TenantResponse, TenantPublic
 from app.services.tenant_service import TenantService
-from app.core.security import require_super_admin
+from app.core.security import require_super_admin, get_current_user
 from app.models import Tenant, TenantCountry
+from app.services.wallet_service import WalletService
 
 router = APIRouter(tags=["Tenants"])
 
@@ -73,3 +74,12 @@ def register_tenant(
         status=tenant.status,
         allowed_countries=allowed_countries
     )
+
+@router.post("/{tenant_id}/enter")
+def enter_casino(
+    tenant_id: uuid.UUID, 
+    db: Session = Depends(get_db), 
+    user = Depends(get_current_user)
+):
+    # 🎯 Lazy creation of wallets/profile
+    return WalletService.init_tenant_profile(db, user.user_id, tenant_id)

@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import api from '../../lib/axios';
 
+// 🎯 New logic: Matches the strict constraints in your backend service
+const ALLOWED_DOMAINS = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"];
+
 export default function GameProviderForm() {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
 
@@ -20,7 +23,10 @@ export default function GameProviderForm() {
       toast.success(`Provider "${data.provider_name}" registered!`);
       reset();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to register provider');
+      // 🎯 Handle the backend validation error specifically
+      const detail = error.response?.data?.detail;
+      const msg = Array.isArray(detail) ? detail[0]?.msg : (detail || 'Failed to register provider');
+      toast.error(msg);
     }
   };
 
@@ -45,7 +51,6 @@ export default function GameProviderForm() {
       {/* 2. Main Card Container */}
       <div className="bg-slate-800/50 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
         
-        {/* Decorative Top Accent */}
         <div className="h-1.5 w-full bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500"></div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 md:p-10 space-y-7">
@@ -82,7 +87,7 @@ export default function GameProviderForm() {
                 <Globe className="h-5 w-5 text-slate-500 group-focus-within:text-teal-400 transition-colors" />
               </div>
               <input
-                {...register('website')}
+                {...register('website', { required: 'Website is required' })}
                 type="url"
                 className="pl-12 block w-full rounded-xl border border-slate-600 bg-slate-900/50 p-3.5 
                 text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500 shadow-inner"
@@ -91,7 +96,7 @@ export default function GameProviderForm() {
             </div>
           </div>
 
-          {/* Contact Email */}
+          {/* Contact Email - 🎯 LOGIC UPDATED HERE */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
               Contact Email Address
@@ -103,13 +108,18 @@ export default function GameProviderForm() {
               <input
                 {...register('email', { 
                     required: 'Email is required',
-                    pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' }
+                    pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' },
+                    // 🎯 Frontend check to match backend validate_email_domain
+                    validate: value => {
+                      const domain = value.split('@')[1]?.toLowerCase();
+                      return ALLOWED_DOMAINS.includes(domain) || `Must be a reputable provider (${ALLOWED_DOMAINS.join(', ')})`;
+                    }
                 })}
                 type="email"
                 className={`pl-12 block w-full rounded-xl border border-slate-600 bg-slate-900/50 p-3.5 
                 text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500 shadow-inner
                 ${errors.email ? 'border-red-500' : ''}`}
-                placeholder="partners@studio.com"
+                placeholder="partners@gmail.com"
               />
             </div>
             {errors.email && <p className="text-red-400 text-xs mt-1 font-medium">{errors.email.message}</p>}

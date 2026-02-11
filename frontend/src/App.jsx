@@ -40,6 +40,7 @@ import History from './pages/player/History';
 import TransactionsPage from './pages/player/TransactionsPage';
 import Bonuses from "./pages/player/Bonuses";
 import BonusDetails from "./pages/player/BonusDetails";
+import TenantSelector from "./pages/player/TenantSelector";
 
 
 
@@ -141,6 +142,15 @@ function App() {
             <Route path="kyc" element={<ProviderKYC />} />
           </Route>
 
+{/* 🎯 1. Standalone Marketplace Route (No Sidebar) */}
+<Route 
+  path="/player/casinos" 
+  element={
+    <ProtectedRoute>
+      <TenantSelector />
+    </ProtectedRoute>
+  } 
+/>
 {/* 🎮 PLAYER AREA (New Nested Routes) */}
           <Route
             path="/player"
@@ -150,6 +160,8 @@ function App() {
               </ProtectedRoute>
             }
           >
+              <Route path="casinos" element={<TenantSelector />} /> 
+
             {/* These render inside the <Outlet /> of PlayerLayout */}
             <Route path="lobby" element={<PlayerLobby />} />
                       <Route path="play/:gameId" element={<GamePlay />} /> 

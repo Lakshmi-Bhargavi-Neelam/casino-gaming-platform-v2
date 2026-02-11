@@ -9,7 +9,7 @@ import {
 import { toast } from 'react-hot-toast';
 
 export default function WalletPage() {
-  const { updateBalance, balance: contextBalance } = useAuth(); 
+  const { updateBalance, balance: contextBalance, activeTenantId } = useAuth(); 
   const [activeTab, setActiveTab] = useState('deposit');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,20 +21,45 @@ export default function WalletPage() {
       return toast.error("Please enter a valid amount");
     }
 
+    // Safety check: Ensure a casino is actually selected
+    if (!activeTenantId) {
+      return toast.error("No active casino session found. Please re-enter from Marketplace.");
+    }
+
     setLoading(true);
     try {
       const endpoint = type === 'deposit' ? '/payments/deposit' : '/payments/withdraw';
-      const response = await api.post(endpoint, { amount: parseFloat(amount) });
+      
+      // 🎯 1. Define the payload correctly
+      const payload = { 
+        amount: parseFloat(amount),
+        tenant_id: activeTenantId 
+      };
+
+      // 🎯 2. FIX: You must pass the 'payload' variable here!
+      const response = await api.post(endpoint, payload);
       
       toast.success(response.data.message);
       
-      // Sync balance after action
-      const syncRes = await api.get('/gameplay/wallet/dashboard');
+      // 3. Sync balance after action using the tenant context
+      const syncRes = await api.get(`/gameplay/wallet/dashboard?tenant_id=${activeTenantId}`);
       updateBalance(syncRes.data.balance);
       
       setAmount('');
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Transaction failed");
+      // 🎯 3. FIX: Crash-proof error handling for validation objects
+      const detail = err.response?.data?.detail;
+      
+      if (Array.isArray(detail)) {
+        // Handle FastAPI 422 errors (Array of objects)
+        toast.error(detail[0]?.msg || "Validation Error");
+      } else if (typeof detail === 'object' && detail !== null) {
+        // Handle custom error objects
+        toast.error(detail.message || "Action failed");
+      } else {
+        // Handle strings or fallback
+        toast.error(detail || "Transaction failed");
+      }
     } finally {
       setLoading(false);
     }

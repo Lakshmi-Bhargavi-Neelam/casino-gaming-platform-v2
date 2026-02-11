@@ -9,6 +9,8 @@ import {
 import { toast } from 'react-hot-toast';
 
 export default function TransactionsPage() {
+    const { activeTenantId } = useAuth(); // 🎯 1. Get the tenant ID from context
+
   const [transactions, setTransactions] = useState([]);
   const [fetching, setFetching] = useState(true);
   const [filters, setFilters] = useState({ type: '', specificDate: '', fullMonth: '' });
@@ -18,17 +20,20 @@ export default function TransactionsPage() {
     try {
       const params = new URLSearchParams();
       if (filters.type) params.append('tx_type', filters.type);
+      
       const dateValue = filters.specificDate || filters.fullMonth;
       if (dateValue) params.append('month', dateValue);
 
-      const response = await api.get(`/gameplay/wallet/dashboard?${params.toString()}`);
+      // 🎯 2. FIX: Include tenant_id in the URL
+      const response = await api.get(`/gameplay/wallet/dashboard?tenant_id=${activeTenantId}&${params.toString()}`);
+      
       setTransactions(response.data.transactions || []);
     } catch (err) {
       toast.error("Failed to sync transaction ledger");
     } finally {
       setFetching(false);
     }
-  }, [filters]);
+  }, [filters, activeTenantId]);
 
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 

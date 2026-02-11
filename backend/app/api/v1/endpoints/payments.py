@@ -85,6 +85,8 @@ def player_deposit(
 
 class WithdrawalRequest(BaseModel):
     amount: float
+    tenant_id: uuid.UUID # 🎯 Add this line
+
     
 # app/api/endpoints/payments.py (or similar)
 
@@ -113,7 +115,7 @@ def get_pending_withdrawals(
 @router.post("/withdraw")
 def request_withdrawal(req: WithdrawalRequest, db: Session = Depends(get_db), user = Depends(get_current_user)):
     enforce_kyc_verified(user)
-    WithdrawalService.create_request(db, user.user_id, user.tenant_id, req.amount)
+    WithdrawalService.create_request(db, user.user_id, req.tenant_id, req.amount)
     db.commit()
     return {"message": "Withdrawal request submitted. Funds have been locked for review."}
 

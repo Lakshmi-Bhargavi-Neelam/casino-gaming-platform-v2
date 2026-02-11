@@ -1,12 +1,12 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from uuid import UUID
 from datetime import datetime
 
 class TenantAdminCreate(BaseModel):
     tenant_id: UUID
-    admin_username: str
     first_name: str
     last_name: str
+    email: EmailStr 
     password: str = Field(min_length=8)
 
 class TenantAdminResponse(BaseModel):

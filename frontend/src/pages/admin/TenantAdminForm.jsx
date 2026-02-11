@@ -9,9 +9,13 @@ import {
   Lock, 
   ChevronDown, 
   CheckCircle,
-  ShieldCheck
+  ShieldCheck,
+  Mail // 🎯 Added Mail icon for the new field
 } from 'lucide-react';
 import api from '../../lib/axios';
+
+// 🎯 Allowed domains based on your backend strict constraint
+const ALLOWED_DOMAINS = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"];
 
 export default function TenantAdminForm() {
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm();
@@ -34,8 +38,9 @@ export default function TenantAdminForm() {
 
   const onSubmit = async (data) => {
     try {
+      // 🎯 Data payload now includes the real email provided by the user
       await api.post('/tenant-admins', data);
-      toast.success(`Admin "${data.admin_username}" created successfully!`);
+      toast.success(`Admin account created for ${data.email}!`);
       reset();
     } catch (error) {
       const detail = error.response?.data?.detail;
@@ -47,7 +52,6 @@ export default function TenantAdminForm() {
   return (
     <div className="w-full max-w-3xl mx-auto p-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      {/* 1. Page Header */}
       <header className="text-center md:text-left">
         <h1 className="text-3xl font-bold text-white tracking-tight flex items-center justify-center md:justify-start gap-3">
           <div className="p-2 bg-teal-500/10 rounded-lg">
@@ -60,15 +64,12 @@ export default function TenantAdminForm() {
         </p>
       </header>
 
-      {/* 2. Dark Card Container */}
       <div className="relative bg-slate-800/50 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-700/50 overflow-hidden">
         
-        {/* Decorative Top Accent */}
         <div className="h-1 w-full bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-500"></div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 md:p-10 space-y-6">
           
-          {/* Tenant Selection */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
               Select Operator Tenant
@@ -100,7 +101,6 @@ export default function TenantAdminForm() {
             {errors.tenant_id && <p className="text-red-400 text-xs mt-1 font-medium">{errors.tenant_id.message}</p>}
           </div>
 
-          {/* Name Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">First Name</label>
@@ -120,25 +120,32 @@ export default function TenantAdminForm() {
             </div>
           </div>
 
-          {/* Username */}
+          {/* 🎯 LOGIC CHANGE: Replaced "Admin Username" with "Real Email Address" */}
           <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Admin Username</label>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Admin Email Address</label>
             <div className="relative group">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-slate-500 group-focus-within:text-teal-400" />
+                <Mail className="h-5 w-5 text-slate-500 group-focus-within:text-teal-400" />
               </div>
               <input
-                {...register('admin_username', { required: 'Username is required' })}
-                type="text"
-                autoComplete="off"
-                className="pl-12 block w-full rounded-xl border border-slate-600 bg-slate-900/50 p-3.5 
-                text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all shadow-inner"
-                placeholder="jdoe_admin"
+                {...register('email', { 
+                  required: 'Email is required',
+                  pattern: { value: /^\S+@\S+$/i, message: 'Invalid email format' },
+                  validate: value => {
+                      const domain = value.split('@')[1]?.toLowerCase();
+                      return ALLOWED_DOMAINS.includes(domain) || `Must be a reputable provider (${ALLOWED_DOMAINS.join(', ')})`;
+                  }
+                })}
+                type="email"
+                className={`pl-12 block w-full rounded-xl border border-slate-600 bg-slate-900/50 p-3.5 
+                text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-teal-500 transition-all shadow-inner
+                ${errors.email ? 'border-red-500' : ''}`}
+                placeholder="admin@gmail.com"
               />
             </div>
+            {errors.email && <p className="text-red-400 text-xs mt-1 font-medium">{errors.email.message}</p>}
           </div>
 
-          {/* Password */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Secure Password</label>
             <div className="relative group">
@@ -160,7 +167,6 @@ export default function TenantAdminForm() {
             {errors.password && <p className="text-red-400 text-xs font-medium">{errors.password.message}</p>}
           </div>
 
-          {/* Submit Button */}
           <div className="pt-4">
             <button
               type="submit"
@@ -187,11 +193,10 @@ export default function TenantAdminForm() {
         </form>
       </div>
 
-      {/* Helper Info Footer */}
       <footer className="text-center">
         <p className="text-slate-500 text-sm flex items-center justify-center gap-2">
           <CheckCircle size={14} className="text-teal-500" />
-          Credentials will be active immediately upon creation.
+          Admins must log in with their real personal email address.
         </p>
       </footer>
     </div>

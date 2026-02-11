@@ -4,15 +4,14 @@ from datetime import datetime
 
 
 class PlayerCreate(BaseModel):
-    tenant_id: UUID
-    country_code: str = Field(min_length=2, max_length=2)
+    # tenant_id: UUID  <-- 🎯 REMOVED
+    country_code: str = Field(..., min_length=2, max_length=2)
     email: EmailStr
-    password: str = Field(min_length=8)
-
+    username: str = Field(..., min_length=3) # 🎯 Added per your new requirement
+    password: str = Field(..., min_length=8)
 
 class PlayerRegisterResponse(BaseModel):
     player_id: UUID
-    tenant_id: UUID
     country_code: str
     email: EmailStr
     status: str
@@ -20,5 +19,10 @@ class PlayerRegisterResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+
+class SelfExclusionRequest(BaseModel):
+    status: bool
 
 

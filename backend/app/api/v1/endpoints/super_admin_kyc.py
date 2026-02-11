@@ -17,7 +17,7 @@ router = APIRouter(prefix="/admin/kyc", tags=["Super Admin KYC"])
 
 @router.get("/pending-requests")
 def get_business_pending_requests(
-    role_name: str = Query(..., regex="^(tenant_admin|game_provider)$"),
+    role_name: str = Query(..., regex="^(tenant_admin|game_provider|player)$"),
     db: Session = Depends(get_db),
     admin=Depends(require_super_admin)
 ):

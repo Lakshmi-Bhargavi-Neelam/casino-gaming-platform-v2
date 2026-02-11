@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, extract, cast, Date
 from fastapi import HTTPException
 from app.models.wallet import Wallet
+from app.models.user import User
+from app.models.country import Country
 from app.models.wallet_transaction import WalletTransaction
 from app.models.transaction_type import TransactionType
 from app.models.game_round import GameRound
@@ -166,3 +168,45 @@ class WalletService:
                 for t in transactions
             ],
         }
+
+    @staticmethod
+    def init_tenant_profile(db: Session, player_id: uuid.UUID, tenant_id: uuid.UUID):
+        """
+        🎯 The Entry Point: Checks if a player has a wallet for this tenant.
+        If not, creates the CASH and BONUS wallets (Initializes their profile).
+        """
+        # 1. Check if CASH wallet exists for this specific (Player, Tenant) pair
+        cash_wallet = db.query(Wallet).join(Wallet.wallet_type).filter(
+            Wallet.player_id == player_id,
+            Wallet.tenant_id == tenant_id,
+            Wallet.wallet_type.has(wallet_type_code="CASH")
+        ).first()
+
+        if not cash_wallet:
+            # Get player's country to find default currency
+            user = db.query(User).filter(User.user_id == player_id).first()
+            country = db.query(Country).filter(Country.country_code == user.country_code).first()
+
+            # Create CASH wallet
+            db.add(Wallet(
+                player_id=player_id,
+                tenant_id=tenant_id,
+                currency_id=country.default_currency_id,
+                wallet_type_id=1, # CASH
+                balance=0,
+                is_active=True
+            ))
+            
+            # Create BONUS wallet
+            db.add(Wallet(
+                player_id=player_id,
+                tenant_id=tenant_id,
+                currency_id=None,
+                wallet_type_id=2, # BONUS
+                balance=0,
+                is_active=True
+            ))
+            db.commit()
+            return {"message": "Tenant profile initialized successfully"}
+        
+        return {"message": "Profile already exists"}

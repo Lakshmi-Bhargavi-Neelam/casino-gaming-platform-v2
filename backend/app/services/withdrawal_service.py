@@ -3,37 +3,57 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 import uuid
 from app.models.withdrawal import Withdrawal
+from app.models.wallet import Wallet
+from app.models.player import Player
 from app.services.wallet_service import WalletService
+from decimal import Decimal
+
 
 class WithdrawalService:
-    @staticmethod
-    def create_request(db: Session, user_id, tenant_id, amount):
-        wallet = WalletService.get_wallet(db, user_id, "CASH")
-        
-        if wallet.balance < amount:
-            raise HTTPException(400, "Insufficient balance")
 
-        # 1. Deduct money IMMEDIATELY (Locks the funds)
+
+    @staticmethod
+    def create_request(db: Session, user_id: uuid.UUID, tenant_id: uuid.UUID, amount: float):
+        # 🎯 1. Fetch the specific CASH wallet for this tenant first
+        # We need this to get the wallet_id and currency_id required by the DB
+        wallet = WalletService.get_wallet(db, user_id, "CASH", tenant_id)
+
+        if not wallet:
+            raise HTTPException(status_code=404, detail="CASH wallet for this casino not found")
+
+        # 2. Balance check
+        amount_dec = Decimal(str(amount))
+        if wallet.balance < amount_dec:
+            raise HTTPException(status_code=400, detail="Insufficient balance in this casino wallet")
+
+        # 🎯 3. Create the Withdrawal record with the required Foreign Keys
+        new_withdrawal = Withdrawal(
+            player_id=user_id,
+            tenant_id=tenant_id,
+            wallet_id=wallet.wallet_id,      # 👈 Added: Satisfies NotNullViolation
+            currency_id=wallet.currency_id,  # 👈 Added: Keeps financial records accurate
+            amount=amount_dec,
+            status="requested",
+            requested_at=datetime.utcnow()
+        )
+        
+        db.add(new_withdrawal)
+        
+        # 4. Flush to generate the withdrawal_id for the transaction reference
+        db.flush() 
+
+        # 5. Apply the Wallet Transaction (Debit)
+        # Link the transaction to this withdrawal record
         WalletService.apply_transaction(
             db=db,
             wallet=wallet,
-            amount=amount,
-            txn_code="withdrawal_request", # Status: Success (Money is gone from balance)
-            ref_type="withdrawal",
-            ref_id=None
+            amount=float(amount),
+            txn_code="withdrawal_request", 
+            ref_type="withdrawal",         
+            ref_id=new_withdrawal.withdrawal_id 
         )
 
-        # 2. Create the record for Admin review
-        withdrawal = Withdrawal(
-            player_id=user_id,
-            tenant_id=tenant_id,
-            wallet_id=wallet.wallet_id,
-            amount=amount,
-            currency_id=wallet.currency_id,
-            status="requested"
-        )
-        db.add(withdrawal)
-        return withdrawal
+        return new_withdrawal
 
     @staticmethod
     def approve_withdrawal(db: Session, withdrawal_id: uuid.UUID):
