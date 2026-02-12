@@ -42,7 +42,7 @@ class BonusService:
     # -----------------------------
     @staticmethod
     def get_eligible_bonus(db: Session, tenant_id, player_id, deposit_amount):
-        now = datetime.utcnow()
+        now = datetime.now()
 
         bonuses = db.query(Bonus).filter(
             Bonus.tenant_id == tenant_id,
@@ -92,7 +92,7 @@ class BonusService:
         wagering_required = bonus_amount * bonus.wagering_multiplier
 
         # 4. Fetch BONUS wallet
-        bonus_wallet = WalletService.get_wallet(db, player_id, "BONUS")
+        bonus_wallet = WalletService.get_wallet(db, player_id, "BONUS", bonus.tenant_id)
 
         # 5. Create bonus usage instance
         usage = BonusUsage(
@@ -125,12 +125,17 @@ class BonusService:
     # Apply Wagering (on every bet)
     # -----------------------------
     @staticmethod
-    def apply_wagering(db: Session, player_id, bet_amount):
+    def apply_wagering(db: Session, player_id, bet_amount, tenant_id: UUID):
         bet_amount = Decimal(str(bet_amount))
+        now = datetime.now()
+
 
         bonuses = db.query(BonusUsage).filter(
             BonusUsage.player_id == player_id,
-            BonusUsage.status == "active"
+            BonusUsage.status == "active",
+            Bonus.tenant_id == tenant_id, # 👈 ISOLATION LAYER
+            Bonus.valid_to > now  # 👈 Block wagering if template expired
+
         ).all()
 
         for usage in bonuses:
@@ -146,14 +151,26 @@ class BonusService:
     # -----------------------------
     @staticmethod
     def convert_bonus_to_cash(db: Session, bonus_usage, player_id):
+        tenant_id = bonus_usage.bonus.tenant_id 
+
+        # now = datetime.utcnow()
+        now = datetime.now()
+        
+
+         # 🎯 FIX: Block conversion if the template has expired
+        if bonus_usage.bonus.valid_to < now:
+            bonus_usage.status = "expired"
+            db.commit()
+            raise HTTPException(status_code=400, detail="This bonus has expired and cannot be converted.")
+
         if bonus_usage.status != "eligible":
             raise HTTPException(
                 status_code=400,
                 detail="Bonus is not eligible for conversion"
             )
 
-        bonus_wallet = WalletService.get_wallet(db, player_id, "BONUS")
-        cash_wallet = WalletService.get_wallet(db, player_id, "CASH")
+        bonus_wallet = WalletService.get_wallet(db, player_id, "BONUS", tenant_id)
+        cash_wallet = WalletService.get_wallet(db, player_id, "CASH", tenant_id)
 
         bonus_amount = bonus_usage.bonus_amount
 

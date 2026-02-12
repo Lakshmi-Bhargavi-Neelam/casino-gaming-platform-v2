@@ -5,7 +5,7 @@ import { TrendingUp, AlertTriangle, Zap, Timer } from 'lucide-react';
 import api from '../lib/axios';
 import { useAuth } from '../context/AuthContext';
 
-export default function CrashGame({ gameId, optIn }) {
+export default function CrashGame({ gameId, optIn, tenantId }) {
   const { balance, updateBalance } = useAuth();
   
   // Game State
@@ -29,6 +29,7 @@ export default function CrashGame({ gameId, optIn }) {
     try {
       const res = await api.post('/gameplay/play', {
         game_id: gameId,
+        tenant_id: tenantId, // 👈 Required by backend now
         bet_amount: betAmount,
         target_multiplier: targetMultiplier,
         opt_in: optIn // <--- THIS IS THE KEY

@@ -6,7 +6,7 @@ import api from '../lib/axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
 
-export default function MinesGame({ gameId, optIn }) {
+export default function MinesGame({ gameId, optIn, tenantId }) {
   const { balance, updateBalance } = useAuth();
   
   // Game Configuration
@@ -41,8 +41,13 @@ export default function MinesGame({ gameId, optIn }) {
     }
   };
 
-  const handleStartGame = () => {
+const handleStartGame = () => {
     if (balance < betAmount) return toast.error("Insufficient balance");
+    
+    // 🎯 FIX: Visually deduct money immediately (Optimistic Update)
+    // This makes the UI feel responsive, even though the API call happens later
+    updateBalance(balance - betAmount);
+
     setGrid(Array(25).fill(null));
     setSuccessfulPicks(0);
     setLastWin(0);
@@ -50,12 +55,28 @@ export default function MinesGame({ gameId, optIn }) {
     setIsGameActive(true);
   };
 
-  const handleLoss = () => {
+ const handleLoss = async () => {
     setGameOver(true);
     setIsGameActive(false);
     toast.error("BOOM! You hit a mine.");
-  };
 
+    try {
+      // 🎯 Call API to process the LOSS (Debit money, Credit 0)
+      const res = await api.post('/gameplay/play', {
+        game_id: gameId,
+        tenant_id: tenantId,
+        bet_amount: betAmount,
+        successful_picks: 0, // 0 picks means you lost
+        opt_in: optIn
+      });
+
+      // Update balance to reflect the lost bet
+      updateBalance(res.data.balance); 
+      
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const handleCashout = async () => {
     if (successfulPicks === 0) return;
     setLoading(true);
@@ -63,6 +84,7 @@ export default function MinesGame({ gameId, optIn }) {
     try {
       const res = await api.post('/gameplay/play', {
         game_id: gameId,
+        tenant_id: tenantId, // 👈 Required by backend now
         bet_amount: betAmount,
         successful_picks: successfulPicks, // 🎯 Backend uses this for payout
         opt_in: optIn // <--- THIS IS THE KEY

@@ -16,6 +16,8 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
 
 class DepositRequest(BaseModel):
     amount: float
+    tenant_id: uuid.UUID  # 🎯 ADD THIS
+
 
 @router.post("/deposit", summary="Player deposit (internal credit)")
 def player_deposit(
@@ -26,12 +28,12 @@ def player_deposit(
     enforce_kyc_verified(user)
 
     # 1️⃣ Get CASH wallet
-    cash_wallet = WalletService.get_wallet(db, user.user_id, "CASH")
+    cash_wallet = WalletService.get_wallet(db, user.user_id, "CASH", req.tenant_id)
 
     # 2️⃣ Create Deposit record
     deposit = Deposit(
         player_id=user.user_id,
-        tenant_id=user.tenant_id,
+        tenant_id=req.tenant_id,
         wallet_id=cash_wallet.wallet_id,
         amount=req.amount,
         currency_id=cash_wallet.currency_id,
@@ -54,7 +56,7 @@ def player_deposit(
     # 4️⃣ 🔥 BONUS CHECK - standardized to user.user_id
     bonus = BonusService.get_eligible_deposit_bonus(
         db=db,
-        tenant_id=user.tenant_id,
+        tenant_id=req.tenant_id, # 🎯 Use tenant_id from request
         player_id=user.user_id,
         deposit_amount=req.amount
     )

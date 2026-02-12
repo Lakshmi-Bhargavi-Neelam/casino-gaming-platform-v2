@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ShieldCheck, DoorOpen, Trophy } from 'lucide-react'; // 🎯 Import Trophy
 import api from '../../lib/axios';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
+
 
 // Import separate game components
 import SlotMachine from '../../components/SlotMachine';
@@ -12,6 +14,7 @@ import MinesGame from '../../components/MinesGame';
 
 export default function GamePlay() {
   const { gameId } = useParams();
+    const { activeTenantId } = useAuth(); 
   const navigate = useNavigate();
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -21,28 +24,42 @@ export default function GamePlay() {
   const [activeProgressive, setActiveProgressive] = useState(null); 
   const [optIn, setOptIn] = useState(false); 
 
-  // 1. Fetch Game Details
   useEffect(() => {
     const fetchGameDetails = async () => {
+      // 🎯 Guard: Wait for tenant ID
+      if (!activeTenantId) return; 
+
       try {
-        const res = await api.get('/player/player/lobby-games');
+        // 🎯 FIX: Pass tenant_id query param
+        const res = await api.get(`/player/player/lobby-games?tenant_id=${activeTenantId}`);
         const found = res.data.find(g => g.game_id === gameId);
-        setGame(found);
-      } catch {
+        
+        if (found) {
+          setGame(found);
+        } else {
+          toast.error("Game not found in this lobby");
+          navigate('/player/lobby');
+        }
+      } catch (err) {
+        console.error(err);
         toast.error("Could not load game details");
       } finally {
         setLoading(false);
       }
     };
+    
     fetchGameDetails();
-  }, [gameId]);
+  }, [gameId, activeTenantId, navigate]); // 🎯 Add dependencies
 
-  // 🎯 2. Fetch Active Progressive Jackpot
   useEffect(() => {
     const checkJackpotStatus = async () => {
+      if (!activeTenantId) return;
+
       try {
+        // 🎯 FIX: Pass tenant_id here too (if your backend requires it now or later)
+        // If your jackpot endpoint still uses user.tenant_id, it might return empty list.
+        // It's safer to rely on the backend logic we updated for filtering.
         const res = await api.get('/player/jackpots/active');
-        // Look for Type 2 (PROGRESSIVE)
         const progressive = res.data.find(j => j.jackpot_type === 'PROGRESSIVE');
         setActiveProgressive(progressive); 
       } catch (err) {
@@ -50,7 +67,7 @@ export default function GamePlay() {
       }
     };
     checkJackpotStatus();
-  }, []);
+  }, [activeTenantId]);
 
   const handleEndSession = async () => {
     setEnding(true);
@@ -68,7 +85,7 @@ export default function GamePlay() {
 
   const renderGameUI = () => {
     // 🎯 PASS optIn PROP TO ALL GAMES
-    const commonProps = { gameId, gameName: game.game_name, optIn };
+    const commonProps = { gameId, gameName: game.game_name, optIn, tenantId: activeTenantId};
 
     switch (game.engine_type?.toLowerCase()) {
       case 'slot_engine':

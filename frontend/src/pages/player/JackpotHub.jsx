@@ -1,50 +1,76 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../lib/axios';
 import { 
   Trophy, TrendingUp, Users, Clock, Plus, 
-  Loader2, Sparkles, Zap, Coins, Star, Activity 
+  Loader2, Sparkles, Zap, Coins, Star, Activity,
+  ChevronRight, X, ShieldCheck
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
+import JackpotCard from '../../components/jackpots/JackpotCard';
+import ContributeModal from '../../components/jackpots/ContributeModal';
 
 export default function JackpotHub() {
   const [jackpots, setJackpots] = useState([]);
-  const [history, setHistory] = useState({ recent_winners: [], my_wins: [] }); // 🎯 Added history state
+  const [history, setHistory] = useState({ recent_winners: [], my_wins: [] });
   const [loading, setLoading] = useState(true);
-  const { balance, updateBalance } = useAuth();
+  const [contributing, setContributing] = useState(false);
+  
+  // Modal State
+  const [selectedJackpot, setSelectedJackpot] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const fetchData = async () => {
+  // 🎯 Get active context from Auth
+  const { activeTenantId, updateBalance } = useAuth();
+
+  const fetchData = useCallback(async () => {
+    if (!activeTenantId) return;
+    
     try {
+      // 🎯 Pass tenant_id to isolate prizes to the current casino floor
       const [jackpotRes, historyRes] = await Promise.all([
-        api.get('/player/jackpots/active'),
-        api.get('/player/jackpots/history') // 🎯 Fetching win history
+        api.get(`/player/jackpots/active?tenant_id=${activeTenantId}`),
+        api.get(`/player/jackpots/history?tenant_id=${activeTenantId}`)
       ]);
       setJackpots(jackpotRes.data);
       setHistory(historyRes.data);
-    } finally { setLoading(false); }
+    } catch (err) {
+      console.error("Vault sync error");
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTenantId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleOpenContribute = (jackpot) => {
+    setSelectedJackpot(jackpot);
+    setIsModalOpen(true);
   };
 
-  useEffect(() => { fetchData(); }, []);
-
-  const handleContribute = async (id, amount) => {
+  const handleConfirmContribution = async (amount) => {
+    setContributing(true);
     try {
-      const res = await api.post(`/player/jackpots/${id}/contribute`, { amount });
-      toast.success("Pool increased! Contribution recorded.");
-      fetchData(); // Refresh everything
+      // 🎯 Send contribution with tenant context
+      await api.post(`/player/jackpots/${selectedJackpot.jackpot_id}/contribute?tenant_id=${activeTenantId}`, { 
+        amount: parseFloat(amount) 
+      });
+      
+      toast.success("Pool boosted! Your contribution is registered.");
+      setIsModalOpen(false);
+      fetchData(); // Refresh pools and history
+      
       // Sync wallet balance
-      const walletRes = await api.get('/gameplay/wallet/dashboard');
+      const walletRes = await api.get(`/gameplay/wallet/dashboard?tenant_id=${activeTenantId}`);
       updateBalance(walletRes.data.balance);
     } catch (err) {
       toast.error(err.response?.data?.detail || "Transaction failed");
+    } finally {
+      setContributing(false);
     }
   };
-
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-      <Loader2 className="animate-spin text-amber-500" size={48} />
-      <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Accessing Prize Pools...</p>
-    </div>
-  );
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-1000 pb-20">
@@ -184,6 +210,15 @@ export default function JackpotHub() {
           </div>
         </div>
       </section>
+
+            {/* 🎯 THE CONTRIBUTION MODAL */}
+      <ContributeModal 
+        jackpot={selectedJackpot}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={handleConfirmContribution}
+        loading={contributing}
+      />
 
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }

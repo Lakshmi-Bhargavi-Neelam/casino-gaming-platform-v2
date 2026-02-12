@@ -23,10 +23,11 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   // 🎯 2. Logic to switch the active Casino context
-  const selectTenant = (tenantId) => {
+// In AuthContext.jsx
+const selectTenant = (tenantId) => {
     localStorage.setItem('active_tenant_id', tenantId);
-    setActiveTenantId(tenantId);
-  };
+    setActiveTenantId(tenantId); // 🎯 This triggers the refresh in Bonuses.jsx
+};
 
   // Helper to update balance (used after bets/wins)
   const updateBalance = (newBalance) => {

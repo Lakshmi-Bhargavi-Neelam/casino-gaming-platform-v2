@@ -40,7 +40,7 @@ class GameplayService:
         tenant_id: uuid.UUID,
         game_id: uuid.UUID,
         bet_amount: float,
-        opt_in: bool = False, # 🎯 Confirmed: Added opt_in arg
+        opt_in: bool = False,
         **kwargs 
     ):
         session = None
@@ -63,7 +63,9 @@ class GameplayService:
             if not tenant_game:
                 raise HTTPException(status_code=403, detail="Game not enabled for tenant")
 
-            wallet = WalletService.get_wallet(db, player_id, "CASH")
+            # 🎯 FIX: Pass tenant_id to find the specific casino wallet
+            wallet = WalletService.get_wallet(db, player_id, "CASH", tenant_id)
+            
             engine = GameplayService.get_engine(game)
 
             engine.validate_bet(
@@ -89,7 +91,7 @@ class GameplayService:
                     status="active"
                 )
                 db.add(session)
-                db.flush()
+                db.flush() 
 
             # ─────────────────────────────
             # ROUND CREATION
@@ -125,26 +127,22 @@ class GameplayService:
             # ─────────────────────────────
             # 🎯 JACKPOT SPLIT LOGIC
             # ─────────────────────────────
-            game_stake = bet_amount # Default: Full amount goes to game
+            game_stake = bet_amount 
             
             if opt_in:
-                # Import here to avoid circular imports if necessary
                 from app.services.jackpot_service import JackpotService
-                
-                # This calculates the split, updates the jackpot pool, records contribution,
-                # and returns the REMAINING amount to be used for the game (e.g. $99)
+                # This helper already accepts tenant_id to find the right pool
                 game_stake = JackpotService.process_progressive_bet(
                     db,
-                     player_id,
-                     tenant_id, 
-                     bet_amount,
-                     bet_id=bet.bet_id 
+                    player_id,
+                    tenant_id, 
+                    bet_amount,
+                    bet_id=bet.bet_id 
                 )
 
             # ─────────────────────────────
             # WALLET DEBIT (FULL AMOUNT)
             # ─────────────────────────────
-            # Note: We debit the user for the TOTAL they agreed to pay (e.g., $100)
             WalletService.apply_transaction(
                 db,
                 wallet,
@@ -157,13 +155,17 @@ class GameplayService:
             # ─────────────────────────────
             # BONUS WAGERING (GAME STAKE)
             # ─────────────────────────────
-            # Fair Play: Only the amount risked on the game (e.g., $99) counts for wagering
-            BonusService.apply_wagering(db, player_id=player_id, bet_amount=game_stake)
+            BonusService.apply_wagering(
+                db, 
+                player_id=player_id, 
+                bet_amount=game_stake, 
+                tenant_id=tenant_id # 👈 PASS CONTEXT
+            )
+
 
             # ─────────────────────────────
             # GAME ENGINE EXECUTION (GAME STAKE)
             # ─────────────────────────────
-            # Engine runs on the reduced stake ($99), so wins are calculated on that basis
             result = engine.run(game_stake, **kwargs)
             win_amount = result["win_amount"]
 
@@ -202,11 +204,10 @@ class GameplayService:
                 "engine_type": game.engine_type,
                 "game_data": result["result_data"], 
                 "engine_config": game.engine_config or {},
-                # Optional: Return split details for frontend debugging
                 "bet_split": {
                     "total": bet_amount,
                     "game_stake": game_stake,
-                    "jackpot_contribution": bet_amount - game_stake if opt_in else 0
+                    "jackpot_contribution": round(bet_amount - game_stake, 2) if opt_in else 0
                 }
             }
 

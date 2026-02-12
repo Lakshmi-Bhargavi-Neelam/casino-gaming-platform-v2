@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query # Added Query
 from sqlalchemy.orm import Session
 import uuid
+from uuid import UUID
 from pydantic import BaseModel
 from typing import Optional # Added Optional
 
@@ -16,6 +17,7 @@ router = APIRouter(tags=["Gameplay"])
 # 🎯 UPDATE THIS CLASS HERE
 class PlayRequest(BaseModel):
     game_id: uuid.UUID
+    tenant_id: UUID  # 🎯 ADD THIS FIELD
     bet_amount: float
     player_choice: Optional[str] = None
     target_multiplier: Optional[float] = None
@@ -30,7 +32,7 @@ def play_game(req: PlayRequest, db: Session = Depends(get_db), user=Depends(get_
     return GameplayService.play_game(
         db,
         user.user_id,
-        user.tenant_id,
+        req.tenant_id,
         req.game_id,
         req.bet_amount,
         opt_in=req.opt_in,   # 🎯 PASS THIS
@@ -52,12 +54,13 @@ def end_game_session(game_id: uuid.UUID, db: Session = Depends(get_db), user=Dep
 def get_wallet_info(
     db: Session = Depends(get_db), 
     user = Depends(get_current_user),
+    tenant_id: uuid.UUID = Query(...), 
     tx_type: Optional[str] = Query(None), # Filter by 'deposit', 'withdrawal', 'bet'
     month: Optional[str] = Query(None)     # Filter by 'YYYY-MM'
 ):
     enforce_kyc_verified(user)
     # Pass filters to the service layer
-    data = WalletService.get_wallet_dashboard(db, user.user_id, tx_type=tx_type, month=month)
+    data = WalletService.get_wallet_dashboard(db, user.user_id,tenant_id, tx_type=tx_type, month=month)
     if not data:
         raise HTTPException(status_code=404, detail="Wallet not found")
     return data

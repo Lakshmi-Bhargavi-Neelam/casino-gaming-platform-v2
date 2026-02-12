@@ -9,8 +9,17 @@ class MinesEngine(BaseGameEngine):
         """
         grid_size = self.config.get("grid_size", 25)
         mines = self.config.get("mine_count", 3)
-        picks = kwargs.get("successful_picks", 1)
-        curve = self.config.get("multiplier_curve", 0.97) # House edge factor
+        picks = kwargs.get("successful_picks", 0) # Default to 0
+        curve = self.config.get("multiplier_curve", 0.97)
+
+        # 🎯 FIX: If 0 picks, it's a LOSS (Player hit a mine immediately or logic failed)
+        if picks == 0:
+            return {
+                "result_data": {"picks": 0, "mines": mines, "message": "Hit Mine"},
+                "outcome": "LOSE",
+                "win_amount": 0.0,  # 🎯 Force Loss
+                "multiplier": 0.0
+            }
         
         # Calculate theoretical multiplier: nCr(total, mines) / nCr(remaining, mines)
         total_combinations = math.comb(grid_size, mines)

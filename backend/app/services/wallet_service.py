@@ -1,6 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, extract, cast, Date
 from fastapi import HTTPException
+from decimal import Decimal
+import uuid
+
 from app.models.wallet import Wallet
 from app.models.user import User
 from app.models.country import Country
@@ -9,8 +12,6 @@ from app.models.transaction_type import TransactionType
 from app.models.game_round import GameRound
 from app.models.deposit import Deposit
 from app.models.withdrawal import Withdrawal
-from decimal import Decimal
-import uuid
 
 
 class WalletService:
@@ -18,6 +19,7 @@ class WalletService:
     @staticmethod
     def _validate_reference(db: Session, ref_type: str, ref_id):
         """Ensure reference_id points to correct table."""
+
         if ref_type == "withdrawal_request" and ref_id is None:
             return
 
@@ -26,34 +28,43 @@ class WalletService:
 
         if ref_type == "bet":
             exists = db.query(GameRound).filter_by(round_id=ref_id).first()
+
         elif ref_type == "deposit":
             exists = db.query(Deposit).filter_by(deposit_id=ref_id).first()
+
         elif ref_type in ["withdrawal", "withdrawal_rejection"]:
             exists = db.query(Withdrawal).filter_by(withdrawal_id=ref_id).first()
-        
-        # 🎯 Support for Bonuses
+
+        # 🎯 Bonuses (skip strict FK check)
         elif ref_type in ["bonus", "bonus_conversion"]:
-           return # Skip strict DB check for these since they point to Bonus table
-        
-        # 🎯 SUPPORT FOR JACKPOTS (Added)
+            return
+
+        # 🎯 Jackpots (skip strict FK check)
         elif ref_type in ["jackpot", "jackpot_win"]:
-            return # Skip strict DB check for these since they point to Jackpot tables
-            
+            return
+
         else:
             raise HTTPException(400, f"Invalid reference type: {ref_type}")
 
         if not exists:
             raise HTTPException(400, f"Invalid {ref_type} reference")
 
+    # ✅ FIXED INDENTATION
     @staticmethod
-    def get_wallet(db: Session, player_id: uuid.UUID, wallet_type_code: str):
+    def get_wallet(
+        db: Session,
+        player_id: uuid.UUID,
+        wallet_type_code: str,
+        tenant_id: uuid.UUID
+    ):
         wallet = (
             db.query(Wallet)
             .join(Wallet.wallet_type)
             .filter(
                 Wallet.player_id == player_id,
+                Wallet.tenant_id == tenant_id,
                 Wallet.wallet_type.has(wallet_type_code=wallet_type_code),
-                Wallet.is_active == True,
+                Wallet.is_active.is_(True),
             )
             .with_for_update()
             .first()
@@ -74,7 +85,10 @@ class WalletService:
         ref_id=None,
     ):
         amount_dec = Decimal(str(amount))
-        txn_type = db.query(TransactionType).filter_by(transaction_code=txn_code).first()
+
+        txn_type = db.query(TransactionType).filter_by(
+            transaction_code=txn_code
+        ).first()
 
         if not txn_type:
             raise HTTPException(400, "Invalid transaction type")
@@ -86,8 +100,10 @@ class WalletService:
         if txn_type.direction == "debit":
             if wallet.balance < amount_dec:
                 raise HTTPException(400, "Insufficient balance")
+
             wallet.balance -= amount_dec
             signed_amount = -amount_dec
+
         else:
             wallet.balance += amount_dec
             signed_amount = amount_dec
@@ -110,17 +126,18 @@ class WalletService:
     def get_wallet_dashboard(
         db: Session,
         player_id: uuid.UUID,
+        tenant_id: uuid.UUID,
         tx_type: str = None,
         month: str = None,
     ):
-        # Always fetch CASH wallet
         wallet = (
             db.query(Wallet)
             .join(Wallet.wallet_type)
             .filter(
                 Wallet.player_id == player_id,
+                Wallet.tenant_id == tenant_id,
                 Wallet.wallet_type.has(wallet_type_code="CASH"),
-                Wallet.is_active == True,
+                Wallet.is_active.is_(True),
             )
             .first()
         )
@@ -138,14 +155,17 @@ class WalletService:
         if month and month not in ["", "month"]:
             try:
                 if len(month) == 10:
-                    query = query.filter(cast(WalletTransaction.created_at, Date) == month)
+                    query = query.filter(
+                        cast(WalletTransaction.created_at, Date) == month
+                    )
+
                 elif len(month) == 7:
                     year, m = map(int, month.split("-"))
                     query = query.filter(
                         extract("year", WalletTransaction.created_at) == year,
                         extract("month", WalletTransaction.created_at) == m,
                     )
-            except:
+            except Exception:
                 pass
 
         transactions = (
@@ -171,42 +191,47 @@ class WalletService:
 
     @staticmethod
     def init_tenant_profile(db: Session, player_id: uuid.UUID, tenant_id: uuid.UUID):
-        """
-        🎯 The Entry Point: Checks if a player has a wallet for this tenant.
-        If not, creates the CASH and BONUS wallets (Initializes their profile).
-        """
-        # 1. Check if CASH wallet exists for this specific (Player, Tenant) pair
+        """Initialize CASH & BONUS wallets for tenant context."""
+
         cash_wallet = db.query(Wallet).join(Wallet.wallet_type).filter(
             Wallet.player_id == player_id,
             Wallet.tenant_id == tenant_id,
             Wallet.wallet_type.has(wallet_type_code="CASH")
         ).first()
 
-        if not cash_wallet:
-            # Get player's country to find default currency
-            user = db.query(User).filter(User.user_id == player_id).first()
-            country = db.query(Country).filter(Country.country_code == user.country_code).first()
+        if cash_wallet:
+            return {"message": "Profile already exists"}
 
-            # Create CASH wallet
-            db.add(Wallet(
-                player_id=player_id,
-                tenant_id=tenant_id,
-                currency_id=country.default_currency_id,
-                wallet_type_id=1, # CASH
-                balance=0,
-                is_active=True
-            ))
-            
-            # Create BONUS wallet
-            db.add(Wallet(
-                player_id=player_id,
-                tenant_id=tenant_id,
-                currency_id=None,
-                wallet_type_id=2, # BONUS
-                balance=0,
-                is_active=True
-            ))
-            db.commit()
-            return {"message": "Tenant profile initialized successfully"}
-        
-        return {"message": "Profile already exists"}
+        user = db.query(User).filter(User.user_id == player_id).first()
+
+        if not user:
+            raise HTTPException(404, "User not found")
+
+        country = db.query(Country).filter(
+            Country.country_code == user.country_code
+        ).first()
+
+        if not country:
+            raise HTTPException(400, "Invalid country configuration")
+
+        db.add(Wallet(
+            player_id=player_id,
+            tenant_id=tenant_id,
+            currency_id=country.default_currency_id,
+            wallet_type_id=1,  # CASH
+            balance=Decimal("0.00"),
+            is_active=True
+        ))
+
+        db.add(Wallet(
+            player_id=player_id,
+            tenant_id=tenant_id,
+            currency_id=None,
+            wallet_type_id=2,  # BONUS
+            balance=Decimal("0.00"),
+            is_active=True
+        ))
+
+        db.commit()
+
+        return {"message": "Tenant profile initialized successfully"}

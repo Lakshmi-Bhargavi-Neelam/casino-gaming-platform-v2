@@ -3,7 +3,8 @@ from uuid import UUID
 from typing import Optional
 
 class PlayRequest(BaseModel):
-    game_id: UUID
+    game_id: UUID,
+    tenant_id: UUID  # 🎯 ADD THIS FIELD
     bet_amount: float
     player_choice: str | None = None
     target_multiplier: float | None = None

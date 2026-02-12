@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti'; // 🎯 Add this for win celebration
 import api from '../lib/axios'; // Adjust the path if your axios file is elsewhere
 import { useAuth } from '../context/AuthContext';
 
-export default function DiceGame({ gameId, optIn }) {
+export default function DiceGame({ gameId, optIn, tenantId }) {
   const { balance, updateBalance } = useAuth();
   const [betAmount, setBetAmount] = useState(10);
   const [choice, setChoice] = useState('EVEN'); // 🎯 Specific to Dice
@@ -22,6 +22,7 @@ export default function DiceGame({ gameId, optIn }) {
     try {
       const res = await api.post('/gameplay/play', {
         game_id: gameId,
+        tenant_id: tenantId, // 👈 Required by backend now
         bet_amount: betAmount,
         player_choice: choice, // 🎯 Correct: backend kwarg
         opt_in: optIn // <--- THIS IS THE KEY

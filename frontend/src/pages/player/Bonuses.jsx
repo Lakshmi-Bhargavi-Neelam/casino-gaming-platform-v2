@@ -1,29 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../lib/axios';
 import { Gift, Zap, PlusCircle, Wallet, Sparkles, CheckCircle2, Lock, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Bonuses() {
+  const { activeTenantId } = useAuth(); // 🎯 1. Get the ID from context
   const [activeTab, setActiveTab] = useState('discover'); 
   const [available, setAvailable] = useState([]); 
   const [instances, setInstances] = useState([]); 
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const fetchData = async () => {
+  const fetchData =  useCallback(async () => {
+    if (!activeTenantId) return;
+
     setLoading(true);
     try {
       const [availRes, mineRes] = await Promise.all([
-        api.get('/player/bonuses/available'), 
-        api.get('/player/bonuses/my-active')   
+        api.get(`/player/bonuses/available?tenant_id=${activeTenantId}`), 
+        api.get(`/player/bonuses/my-active?tenant_id=${activeTenantId}`)  
       ]);
       setAvailable(availRes.data);
       setInstances(mineRes.data);
     } catch (err) {
       toast.error("Vault synchronization failed");
     } finally { setLoading(false); }
-  };
+  }, [activeTenantId]);
 
   useEffect(() => { fetchData(); }, []);
 

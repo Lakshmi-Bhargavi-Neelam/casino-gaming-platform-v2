@@ -4,29 +4,26 @@ import { useAuth } from "../../context/AuthContext";
 import { 
   History, Calendar, Layers, RefreshCcw, 
   X, CheckCircle2, AlertCircle, Search,
-  ArrowDownLeft, ArrowUpRight, Filter
+  ArrowDownLeft, ArrowUpRight, Clock
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export default function TransactionsPage() {
-    const { activeTenantId } = useAuth(); // 🎯 1. Get the tenant ID from context
-
+  const { activeTenantId } = useAuth(); 
   const [transactions, setTransactions] = useState([]);
   const [fetching, setFetching] = useState(true);
   const [filters, setFilters] = useState({ type: '', specificDate: '', fullMonth: '' });
 
   const fetchTransactions = useCallback(async () => {
+    if (!activeTenantId) return;
     setFetching(true);
     try {
       const params = new URLSearchParams();
       if (filters.type) params.append('tx_type', filters.type);
-      
       const dateValue = filters.specificDate || filters.fullMonth;
       if (dateValue) params.append('month', dateValue);
 
-      // 🎯 2. FIX: Include tenant_id in the URL
       const response = await api.get(`/gameplay/wallet/dashboard?tenant_id=${activeTenantId}&${params.toString()}`);
-      
       setTransactions(response.data.transactions || []);
     } catch (err) {
       toast.error("Failed to sync transaction ledger");
@@ -38,22 +35,20 @@ export default function TransactionsPage() {
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700 pb-20">
       
-      {/* 🚀 Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-4">
+          <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-4 italic uppercase">
              <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
                 <History className="text-indigo-400 w-8 h-8" />
              </div>
-             Transaction Ledger
+             Transaction <span className="text-indigo-400">Ledger</span>
           </h1>
           <p className="text-slate-400 mt-2 font-medium">Review your historical deposits, withdrawals, and game settlements.</p>
         </div>
       </header>
 
-      {/* 🔍 Advanced Filter Bar */}
       <div className="bg-slate-900/50 backdrop-blur-md border border-slate-700/50 p-6 rounded-3xl flex flex-col xl:flex-row items-center gap-6 shadow-2xl">
         <div className="relative group flex-1 w-full">
            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-teal-400" size={18} />
@@ -93,7 +88,7 @@ export default function TransactionsPage() {
 
           <button 
             onClick={() => setFilters({ type: '', specificDate: '', fullMonth: '' })}
-            className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+            className="p-2 text-red-500 hover:bg-red-400/10 rounded-xl transition-all"
           >
             <X size={20} />
           </button>
@@ -104,7 +99,6 @@ export default function TransactionsPage() {
         </button>
       </div>
 
-      {/* 📑 Transaction Table */}
       <div className="bg-slate-900/50 backdrop-blur-md rounded-[2.5rem] border border-slate-700/50 overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -113,7 +107,7 @@ export default function TransactionsPage() {
                 <th className="px-8 py-6">Reference / Type</th>
                 <th className="px-8 py-6">Delta Amount</th>
                 <th className="px-8 py-6">Vault Balance</th>
-                <th className="px-8 py-6">Execution Date</th>
+                <th className="px-8 py-6">Execution Time</th>
                 <th className="px-8 py-6 text-right">Confirmation</th>
               </tr>
             </thead>
@@ -140,10 +134,18 @@ export default function TransactionsPage() {
                       {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
                     <td className="px-8 py-6 font-mono text-sm text-slate-400">${tx.after.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    
+                    {/* 🎯 THE FIXED TIME COLUMN */}
                     <td className="px-8 py-6">
-                       <div className="text-xs font-bold text-slate-300">{new Date(tx.date).toLocaleDateString()}</div>
-                       <div className="text-[10px] text-slate-500 font-medium uppercase mt-1">{new Date(tx.date).toLocaleTimeString()}</div>
+                       <div className="text-xs font-bold text-slate-300">
+                          {new Date(tx.date + "Z").toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+                       </div>
+                       <div className="text-[10px] text-slate-500 font-black uppercase mt-1 flex items-center gap-1">
+                          <Clock size={12} className="text-slate-600" />
+                          {new Date(tx.date + "Z").toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                       </div>
                     </td>
+
                     <td className="px-8 py-6 text-right">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${tx.status === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'}`}>
                         {tx.status === 'success' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}

@@ -23,10 +23,11 @@ router = APIRouter(
 # 🎯 THE "IMMEDIATE" LOGIC: Fetch available templates
 @router.get("/available")
 def list_available_promotions(
+    tenant_id: UUID, # 🎯 Add this as a query param
     db: Session = Depends(get_db),
     user = Depends(get_current_user)
 ):
-    now = datetime.utcnow()
+    now = datetime.now() 
     
     # 1. Identify IDs of bonuses this player has already claimed/triggered
     claimed_bonus_ids = db.query(BonusUsage.bonus_id).filter(
@@ -35,7 +36,7 @@ def list_available_promotions(
 
     # 2. Query the 'bonuses' table directly for immediate visibility
     available = db.query(Bonus).filter(
-        Bonus.tenant_id == user.tenant_id,  # Rule 1: Filter by Tenant
+        Bonus.tenant_id == tenant_id, # 👈 ISOLATION
         Bonus.is_active == True,            # Rule 2: Must be enabled by Admin
         Bonus.valid_from <= now,            # Rule 3: Time check (Start)
         Bonus.valid_to >= now,              # Rule 3: Time check (End)
@@ -49,16 +50,21 @@ def list_available_promotions(
 
 @router.get("/my-active")
 def list_player_bonuses(
+    tenant_id: UUID, # 🎯 Add this as a query param
     db: Session = Depends(get_db),
     user = Depends(get_current_user)
 ):
+    now = datetime.now() # 🎯 FIX: Use .now() here too
+
     try:
         # Join BonusUsage with Bonus template
         results = db.query(BonusUsage).join(
             Bonus, BonusUsage.bonus_id == Bonus.bonus_id
         ).filter(
             BonusUsage.player_id == user.user_id,
-            BonusUsage.status.in_(["active", "eligible"])
+            BonusUsage.status.in_(["active", "eligible"]),
+            Bonus.tenant_id == tenant_id, # 👈 ISOLATION
+            Bonus.valid_to > now 
         ).order_by(BonusUsage.granted_at.desc()).all() # 🎯 Use granted_at
 
         bonus_list = []

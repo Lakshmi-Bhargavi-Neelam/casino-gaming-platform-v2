@@ -13,6 +13,8 @@ import uuid
 import random
 from decimal import Decimal
 from app.schemas.jackpot import JackpotCreate
+from app.models.wallet import Wallet
+from app.models.wallet_type import WalletType
 
 
 class JackpotService:
@@ -39,10 +41,14 @@ class JackpotService:
         return new_jackpot
 
     @staticmethod
-    def contribute_to_sponsored(db: Session, player_id: uuid.UUID, jackpot_id: uuid.UUID, amount: float):
+    def contribute_to_sponsored(db: Session, player_id: uuid.UUID,tenant_id: uuid.UUID, jackpot_id: uuid.UUID, amount: float):
         jackpot = db.query(Jackpot).filter(Jackpot.jackpot_id == jackpot_id).first()
+
+                # 🎯 FIX 1: Security Context Check
+        if not jackpot or jackpot.tenant_id != tenant_id:
+            raise HTTPException(400, "This jackpot does not belong to your current casino.")
         
-        if not jackpot or jackpot.jackpot_type != "SPONSORED" or jackpot.status != "ACTIVE":
+        if jackpot.jackpot_type != "SPONSORED" or jackpot.status != "ACTIVE":
             raise HTTPException(400, "This jackpot is not open for contributions")
         
         now_local = datetime.now()
@@ -55,7 +61,7 @@ class JackpotService:
         amount_dec = Decimal(str(amount))
 
         # 1. Deduct from Player CASH wallet
-        wallet = WalletService.get_wallet(db, player_id, "CASH")
+        wallet = WalletService.get_wallet(db, player_id, "CASH", tenant_id)
         
         WalletService.apply_transaction(
             db=db,
@@ -96,6 +102,7 @@ class JackpotService:
         if jackpot.jackpot_type == "FIXED":
             # 🎯 2. FIXED QUERY: Join Player with User to filter by tenant_id
             # We match Player.player_id with User.user_id
+          
             players = db.query(Player).join(
                 User, Player.player_id == User.user_id
             ).filter(
@@ -132,7 +139,7 @@ class JackpotService:
                 db.add(new_win)
 
                 # B. Credit Winner's CASH wallet
-                winner_wallet = WalletService.get_wallet(db, winner_id, "CASH")
+                winner_wallet = WalletService.get_wallet(db, winner_id, "CASH",jackpot.tenant_id)
                 WalletService.apply_transaction(
                     db=db,
                     wallet=winner_wallet,

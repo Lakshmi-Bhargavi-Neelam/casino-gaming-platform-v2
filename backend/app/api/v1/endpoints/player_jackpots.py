@@ -14,25 +14,25 @@ from app.models.jackpot_win import JackpotWin
 router = APIRouter(prefix="/player/jackpots", tags=["Player Jackpots"])
 
 @router.get("/active")
-def get_active_jackpots(user=Depends(get_current_player), db=Depends(get_db)):
+def get_active_jackpots(tenant_id: uuid.UUID, user=Depends(get_current_player), db=Depends(get_db)):
     return db.query(Jackpot).filter(
-        Jackpot.tenant_id == user.tenant_id,
+        Jackpot.tenant_id == tenant_id,
         Jackpot.status == "ACTIVE"
     ).all()
 
 @router.post("/{jackpot_id}/contribute")
-def contribute(jackpot_id: uuid.UUID, payload: JackpotContribution, user=Depends(get_current_player), db=Depends(get_db)):
-    return JackpotService.contribute_to_sponsored(db, user.user_id, jackpot_id, payload.amount)
+def contribute(jackpot_id: uuid.UUID, payload: JackpotContribution, tenant_id: uuid.UUID, user=Depends(get_current_player), db=Depends(get_db)):
+    return JackpotService.contribute_to_sponsored(db, user.user_id, tenant_id, jackpot_id, payload.amount)
 
 @router.get("/history")
-def get_jackpot_history(db: Session = Depends(get_db), user = Depends(get_current_player)):
+def get_jackpot_history(tenant_id: uuid.UUID, db: Session = Depends(get_db), user = Depends(get_current_player)):
     # 🎯 1. Get recent global winners (Explicit Join to get Email & Jackpot Name)
     recent_results = db.query(JackpotWin, User.email, Jackpot.jackpot_name).join(
         Jackpot, JackpotWin.jackpot_id == Jackpot.jackpot_id
     ).join(
         User, JackpotWin.player_id == User.user_id
     ).filter(
-        Jackpot.tenant_id == user.tenant_id
+        Jackpot.tenant_id == tenant_id
     ).order_by(JackpotWin.won_at.desc()).limit(10).all()
 
     # Manual format for Recent Winners

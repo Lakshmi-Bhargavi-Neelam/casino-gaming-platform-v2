@@ -69,7 +69,7 @@ export default function TenantConsoleLayout() {
 
           <div className="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Marketing</div>
 
-          <NavLink to="/console/bonus-list" className={navItemClass}>
+          <NavLink to="/console/bonuses" className={navItemClass}>
             <TrendingUp size={20} /> <span className="font-medium">Promotion Analytics</span>
           </NavLink>
 
