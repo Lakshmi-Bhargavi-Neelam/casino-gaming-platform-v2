@@ -45,6 +45,10 @@ from app.models.jackpot_win import JackpotWin
 from app.models.bonus import Bonus
 from app.models.bonus_usage import BonusUsage
 
+# app/models/__init__.py
+# ... existing imports
+from .analytics_snapshot import AnalyticsSnapshot
+from .player_stats_summary import PlayerStatsSummary
 # from app.models.payment_refund import PaymentRefund
 
 # from app.models.compliance_flag import ComplianceFlag

@@ -3,6 +3,7 @@ from sqlalchemy import desc, extract, cast, Date
 from fastapi import HTTPException
 from decimal import Decimal
 import uuid
+from app.services.analytics_service import AnalyticsService
 
 from app.models.wallet import Wallet
 from app.models.user import User
@@ -213,6 +214,21 @@ class WalletService:
 
         if not country:
             raise HTTPException(400, "Invalid country configuration")
+
+         # ─────────────────────────────
+        # 🎯 ANALYTICS: Track New Registration
+        # ─────────────────────────────
+        # We can create a specific method in AnalyticsService to increment total_players_registered
+        # For now, we can use a generic update to the snapshot
+        stmt = insert(AnalyticsSnapshot).values(
+            snapshot_date=date.today(),
+            tenant_id=tenant_id,
+            total_players_registered=1
+        ).on_conflict_do_update(
+            constraint="analytics_snapshots_snapshot_date_tenant_id_game_id_key",
+            set_={"total_players_registered": AnalyticsSnapshot.total_players_registered + 1}
+        )
+        db.execute(stmt)
 
         db.add(Wallet(
             player_id=player_id,

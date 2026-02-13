@@ -15,6 +15,7 @@ from decimal import Decimal
 from app.schemas.jackpot import JackpotCreate
 from app.models.wallet import Wallet
 from app.models.wallet_type import WalletType
+from app.models.jackpot_win import JackpotWin 
 
 
 class JackpotService:
@@ -98,48 +99,49 @@ class JackpotService:
         winner_id = None
         win_amount = jackpot.current_amount
 
-        # 2. Logic to select the winner based on type
+        # 🎯 2. Select Winner based on Type
+        
         if jackpot.jackpot_type == "FIXED":
-            # 🎯 2. FIXED QUERY: Join Player with User to filter by tenant_id
-            # We match Player.player_id with User.user_id
-          
-            players = db.query(Player).join(
-                User, Player.player_id == User.user_id
-            ).filter(
-                User.tenant_id == jackpot.tenant_id
-            ).all()
+            # 🎯 FIX: For FIXED, we pick from anyone who has "Entered" this casino.
+            # We check the Wallet table because global players have User.tenant_id = NULL.
+            players_in_casino = db.query(Wallet.player_id).filter(
+                Wallet.tenant_id == jackpot.tenant_id,
+                Wallet.is_active == True
+            ).distinct().all()
 
-            if not players:
-                raise HTTPException(status_code=404, detail="No eligible players found for this tenant")
+            if not players_in_casino:
+                raise HTTPException(status_code=404, detail="No players have joined this casino yet.")
             
-            winner_id = random.choice(players).player_id
+            winner_id = random.choice(players_in_casino)[0]
             
-        elif jackpot.jackpot_type == "SPONSORED":
-            # Pick only from people who actually contributed money to this pool
+        elif jackpot.jackpot_type in ["SPONSORED", "PROGRESSIVE"]:
+            # 🎯 FOR PROGRESSIVE & SPONSORED:
+            # We pick ONLY from players who actually paid into this specific pool.
+            # This is the fairest way for Progressive (only opt-in players can win).
             contributors = db.query(ContributionModel.player_id).filter(
                 ContributionModel.jackpot_id == jackpot_id
             ).distinct().all()
             
             if not contributors:
-                raise HTTPException(status_code=404, detail="No contributors found for this sponsored jackpot")
+                # If it's Progressive and no one opted in yet, the pool can't be won.
+                raise HTTPException(status_code=404, detail="No contributors found for this pool.")
             
             winner_id = random.choice(contributors)[0]
 
         # 3. Finalize the Win
         if winner_id:
             try:
-                # A. Create Jackpot Win Record (Ensure JackpotWin model is imported if not already)
-                from app.models.jackpot_win import JackpotWin 
+                # A. Create Jackpot Win Record
                 new_win = JackpotWin(
                     jackpot_id=jackpot_id,
                     player_id=winner_id,
                     win_amount=win_amount,
-                    won_at=datetime.utcnow()
+                    won_at=datetime.now()
                 )
                 db.add(new_win)
 
-                # B. Credit Winner's CASH wallet
-                winner_wallet = WalletService.get_wallet(db, winner_id, "CASH",jackpot.tenant_id)
+                # B. Credit Winner's CASH wallet for THIS tenant
+                winner_wallet = WalletService.get_wallet(db, winner_id, "CASH", jackpot.tenant_id)
                 WalletService.apply_transaction(
                     db=db,
                     wallet=winner_wallet,
@@ -150,12 +152,20 @@ class JackpotService:
                 )
 
                 # C. Update Jackpot State
-                jackpot.last_won_at = datetime.utcnow()
+                jackpot.last_won_at = datetime.now()
                 
-                if jackpot.jackpot_type == "SPONSORED":
+                # Logic for status/reset
+                if jackpot.jackpot_type == "PROGRESSIVE":
+                    # 🎯 Progressive now becomes INACTIVE after one win
+                    jackpot.status = "COMPLETED" 
+                elif jackpot.jackpot_type == "SPONSORED" or jackpot.reset_cycle == "NEVER":
                     jackpot.status = "COMPLETED"
+                    print(f"Jackpot {jackpot.jackpot_name} finalized as COMPLETED.")
                 else:
+                    # Recurring: Reset pool back to the starting seed for the next day/week
                     jackpot.current_amount = jackpot.seed_amount
+                    jackpot.status = "ACTIVE"
+                    print(f"Jackpot {jackpot.jackpot_name} reset to seed amount for next cycle.")
 
                 db.commit()
                 return {"winner_id": str(winner_id), "amount": float(win_amount)}
@@ -165,7 +175,8 @@ class JackpotService:
                 print(f"Error during jackpot draw: {e}")
                 raise HTTPException(status_code=500, detail="Failed to process jackpot win")
 
-        return None
+        # Fallback error
+        raise HTTPException(status_code=404, detail="Winner selection criteria not met")
 
     @staticmethod
     def process_progressive_bet(db: Session, 

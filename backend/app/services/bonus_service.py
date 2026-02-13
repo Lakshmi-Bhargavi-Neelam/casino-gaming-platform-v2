@@ -10,6 +10,7 @@ from app.models.bonus import Bonus
 from app.models.bonus_usage import BonusUsage
 from app.services.wallet_service import WalletService
 from app.schemas.bonus import BonusCreate
+from app.services.analytics_service import AnalyticsService
 
 
 class BonusService:
@@ -105,6 +106,13 @@ class BonusService:
             status="active"
         )
 
+        # ─────────────────────────────
+        # 🎯 ANALYTICS: Track Bonus Issued
+        # ─────────────────────────────
+        AnalyticsService.update_bonus_analytics(
+            db, bonus.tenant_id, float(bonus_amount), "issued"
+        )
+
         db.add(usage)
         db.flush()  # ensures bonus_usage_id is generated
 
@@ -196,6 +204,13 @@ class BonusService:
             txn_code="bonus_conversion_credit",
             ref_type="bonus_conversion",
             ref_id=bonus_usage.bonus_usage_id
+        )
+
+        # ─────────────────────────────
+        # 🎯 ANALYTICS: Track Bonus Converted
+        # ─────────────────────────────
+        AnalyticsService.update_bonus_analytics(
+            db, tenant_id, float(bonus_amount), "converted"
         )
 
         bonus_usage.status = "completed"

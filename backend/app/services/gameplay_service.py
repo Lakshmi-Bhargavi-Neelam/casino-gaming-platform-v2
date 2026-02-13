@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from fastapi import HTTPException
+from app.services.analytics_service import AnalyticsService
 
 from app.models.game import Game
 from app.models.game_round import GameRound
@@ -194,7 +195,23 @@ class GameplayService:
             round_obj.outcome = result["outcome"]
             round_obj.ended_at = datetime.utcnow()
 
-            db.commit()
+            # db.commit()
+
+             # 🎯 NEW: Trigger Live Analytics
+            try:
+                AnalyticsService.update_bet_stats(
+                    db=db,
+                    tenant_id=tenant_id,
+                    player_id=player_id,
+                    game_id=game_id,
+                    provider_id=game.provider_id, # Ensure Game model has provider_id
+                    bet_amount=bet_amount,
+                    win_amount=win_amount
+                )
+                db.commit() # Save analytics
+            except Exception as e:
+                print(f"Analytics logging failed: {e}") 
+                # We don't crash the game if analytics fail, just log it.
 
             return {
                 "round_id": round_obj.round_id,

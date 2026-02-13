@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from app.services.analytics_service import AnalyticsService
 
 from app.core.security import get_db, get_current_user
 from app.services.wallet_service import WalletService
@@ -52,6 +53,17 @@ def player_deposit(
         ref_type="deposit",
         ref_id=deposit.deposit_id
     )
+
+        # ─────────────────────────────
+    # 🎯 NEW: TRIGGER ANALYTICS FOR DEPOSIT
+    # ─────────────────────────────
+    AnalyticsService.update_financial_stats(
+        db=db,
+        tenant_id=req.tenant_id,
+        amount=req.amount,
+        type="deposit"
+    )
+
 
     # 4️⃣ 🔥 BONUS CHECK - standardized to user.user_id
     bonus = BonusService.get_eligible_deposit_bonus(
@@ -132,7 +144,19 @@ def approve_withdrawal(
     enforce_kyc_verified(user)
     # 🎯 Call the centralized service to handle status and wallet updates
     withdrawal = WithdrawalService.approve_withdrawal(db, withdrawal_id)
-    
+    # ─────────────────────────────
+    # 🎯 NEW: TRIGGER ANALYTICS FOR WITHDRAWAL
+    # ─────────────────────────────
+    try:
+        AnalyticsService.update_financial_stats(
+            db=db,
+            tenant_id=user.tenant_id, # Admin's tenant
+            amount=float(withdrawal.amount),
+            type="withdrawal"
+        )
+    except Exception as e:
+        print(f"Withdrawal Analytics Error: {e}")
+
     # IMPORTANT: Commit the changes to the database
     db.commit()
     

@@ -19,6 +19,10 @@ from app.api.v1.endpoints import tenant_bonuses
 from app.api.v1.endpoints import player_bonuses
 from app.api.v1.endpoints import tenant_jackpots # 🎯 1. Import it
 from app.api.v1.endpoints import player_jackpots # 🎯 2. Import player side too
+# app/api/v1/api.py
+
+from app.api.v1.endpoints import tenant_analytics 
+
 
 
 
@@ -51,4 +55,5 @@ api_router.include_router(player_bonuses.router)
 api_router.include_router(tenant_jackpots.router)
 api_router.include_router(player_jackpots.router)
 
-
+# 🎯 2. Register the Analytics Router
+api_router.include_router(tenant_analytics.router)

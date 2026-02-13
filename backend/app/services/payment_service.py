@@ -8,7 +8,7 @@ from app.models.withdrawal import Withdrawal
 from app.models.wallet import Wallet
 from app.models.wallet_transaction import WalletTransaction
 from app.models.transaction_type import TransactionType
-
+from app.services.analytics_service import AnalyticsService
 
 class PaymentService:
 
@@ -54,6 +54,13 @@ class PaymentService:
                 reference_type="deposit",
                 reference_id=deposit.deposit_id,
                 status="success"
+            )
+
+             # ─────────────────────────────
+            # 🎯 ANALYTICS: Track Deposit
+            # ─────────────────────────────
+            AnalyticsService.update_financial_stats(
+                db, wallet.tenant_id, float(deposit.amount), "deposit"
             )
 
             deposit.status = "success"
@@ -122,6 +129,13 @@ class PaymentService:
                 reference_type="withdrawal",
                 reference_id=withdrawal.withdrawal_id,
                 status="success"
+            )
+
+            # ─────────────────────────────
+            # 🎯 ANALYTICS: Track Withdrawal
+            # ─────────────────────────────
+            AnalyticsService.update_financial_stats(
+                db, wallet.tenant_id, float(withdrawal.amount), "withdrawal"
             )
 
             withdrawal.status = "approved"
