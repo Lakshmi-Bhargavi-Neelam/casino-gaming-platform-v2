@@ -92,12 +92,13 @@ def list_player_bonuses(
 @router.post("/available/{bonus_id}/claim")
 def claim_fixed_bonus(
     bonus_id: UUID,
+    tenant_id: UUID, # 🎯 FIX: Accept tenant_id from the frontend
     db: Session = Depends(get_db),
     user = Depends(get_current_user)
 ):
     bonus = db.query(Bonus).filter(
         Bonus.bonus_id == bonus_id,
-        Bonus.tenant_id == user.tenant_id
+        Bonus.tenant_id == tenant_id # 🎯 Use the provided ID
     ).first()
 
     if not bonus or bonus.bonus_type != "FIXED_CREDIT":

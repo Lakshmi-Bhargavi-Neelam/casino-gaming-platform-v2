@@ -13,7 +13,9 @@ import {
   ArrowLeft, // 🎯 Used for the "Back to Casinos" action
   Trophy,
   Receipt,
-  Gift
+  Gift,
+  BarChart3 // 🎯 Added for Analytics
+
 } from "lucide-react"; 
 import { useAuth } from "../../context/AuthContext";
 import api from "../../lib/axios";
@@ -84,6 +86,12 @@ export default function PlayerLayout() {
           <NavLink to="/player/history" className={navItemClass}>
             <History size={20} /> 
             <span className="font-bold">My Bets</span>
+          </NavLink>
+
+                    {/* 🎯 NEW: PLAYER ANALYTICS LINK */}
+          <NavLink to="/player/analytics" className={navItemClass}>
+            <BarChart3 size={20} className="text-teal-400" /> 
+            <span className="font-bold">Performance Hub</span>
           </NavLink>
 
           <NavLink to="/player/jackpots" className={navItemClass}>

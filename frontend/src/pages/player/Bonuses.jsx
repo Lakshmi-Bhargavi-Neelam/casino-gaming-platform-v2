@@ -1,19 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../lib/axios';
-import { Gift, Zap, PlusCircle, Wallet, Sparkles, CheckCircle2, Lock, Loader2 } from 'lucide-react';
+import { 
+  Gift, Zap, PlusCircle, Wallet, Sparkles, 
+  CheckCircle2, Lock, Loader2, History, TimerOff 
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Bonuses() {
-  const { activeTenantId } = useAuth(); // 🎯 1. Get the ID from context
-  const [activeTab, setActiveTab] = useState('discover'); 
+  const { activeTenantId } = useAuth();
+  const [activeTab, setActiveTab] = useState('discover'); // discover | rewards | history
   const [available, setAvailable] = useState([]); 
   const [instances, setInstances] = useState([]); 
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const fetchData =  useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!activeTenantId) return;
 
     setLoading(true);
@@ -29,14 +32,18 @@ export default function Bonuses() {
     } finally { setLoading(false); }
   }, [activeTenantId]);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // 🎯 Filter Logic for the Tabs
+  const activeRewards = instances.filter(inst => inst.status === 'active' || inst.status === 'eligible');
+  const historicalRewards = instances.filter(inst => inst.status === 'completed' || inst.status === 'expired');
 
   const handleClaim = async (bonusId) => {
     try {
-      await api.post(`/player/bonuses/available/${bonusId}/claim`);
+      await api.post(`/player/bonuses/available/${bonusId}/claim?tenant_id=${activeTenantId}`);
       toast.success("Bonus Claimed! Check My Rewards.");
       fetchData();
-      setActiveTab('my_rewards');
+      setActiveTab('rewards'); // Redirect to rewards tab to see the new active card
     } catch (err) {
       toast.error(err.response?.data?.detail || "Claim failed");
     }
@@ -59,9 +66,11 @@ export default function Bonuses() {
           <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-2">Manage and discover premium casino rewards</p>
         </div>
 
-        <div className="bg-slate-900 p-1.5 rounded-2xl flex gap-2 border border-slate-800 shadow-2xl shrink-0">
-          <TabBtn active={activeTab === 'discover'} label="Discover" count={available.length} onClick={() => setActiveTab('discover')} />
-          <TabBtn active={activeTab === 'my_rewards'} label="My Rewards" count={instances.length} onClick={() => setActiveTab('my_rewards')} />
+        {/* 🎯 Tab Switcher */}
+        <div className="bg-slate-900 p-1.5 rounded-2xl flex flex-wrap gap-2 border border-slate-800 shadow-2xl">
+          <TabBtn active={activeTab === 'discover'} label="Live Promotions" count={available.length} onClick={() => setActiveTab('discover')} color="bg-indigo-600" />
+          <TabBtn active={activeTab === 'rewards'} label="My Rewards" count={activeRewards.length} onClick={() => setActiveTab('rewards')} color="bg-teal-500" />
+          <TabBtn active={activeTab === 'history'} label="History" count={historicalRewards.length} onClick={() => setActiveTab('history')} color="bg-slate-700" />
         </div>
       </header>
 
@@ -69,23 +78,26 @@ export default function Bonuses() {
         {activeTab === 'discover' ? (
           available.length > 0 ? (
             available.map(promo => (
-              <PromotionCard 
-                key={promo.bonus_id} 
-                promo={promo} 
-                onClaim={() => handleClaim(promo.bonus_id)} 
-                onDeposit={() => navigate('/player/wallet')} 
-              />
+              <PromotionCard key={promo.bonus_id} promo={promo} onClaim={() => handleClaim(promo.bonus_id)} onDeposit={() => navigate('/player/wallet')} />
             ))
           ) : (
-            <EmptyState text="No active campaigns at the moment." />
+            <EmptyState text="No active campaigns at the moment." icon={<Sparkles />} />
           )
-        ) : (
-          instances.length > 0 ? (
-            instances.map(inst => (
+        ) : activeTab === 'rewards' ? (
+          activeRewards.length > 0 ? (
+            activeRewards.map(inst => (
               <ActiveBonusCard key={inst.bonus_usage_id} inst={inst} onRefresh={fetchData} />
             ))
           ) : (
-            <EmptyState text="You have no active wagering targets." />
+            <EmptyState text="You have no active wagering targets." icon={<Zap />} />
+          )
+        ) : (
+          historicalRewards.length > 0 ? (
+            historicalRewards.map(inst => (
+              <ExpiredBonusCard key={inst.bonus_usage_id} inst={inst} />
+            ))
+          ) : (
+            <EmptyState text="No historical records found." icon={<History />} />
           )
         )}
       </div>
@@ -93,7 +105,7 @@ export default function Bonuses() {
   );
 }
 
-// 🎁 PROMOTION CARD: Based on 'bonuses' table
+// 🎁 PROMOTION CARD (Available to join)
 function PromotionCard({ promo, onClaim, onDeposit }) {
   return (
     <div className="group relative bg-slate-900/40 backdrop-blur-md border border-slate-800 p-8 rounded-[2.5rem] flex flex-col justify-between hover:border-indigo-500/50 transition-all duration-500 shadow-xl">
@@ -101,7 +113,7 @@ function PromotionCard({ promo, onClaim, onDeposit }) {
         {promo.bonus_type.replace('_', ' ')}
       </div>
       <div>
-        <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-6 border border-indigo-500/20 group-hover:scale-110 transition-transform">
+        <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-6 border border-indigo-500/20 group-hover:scale-110 transition-transform shadow-inner">
           <Sparkles className="text-indigo-400" size={28} />
         </div>
         <h3 className="text-2xl font-black text-white uppercase italic tracking-tight leading-tight">{promo.bonus_name}</h3>
@@ -125,7 +137,7 @@ function PromotionCard({ promo, onClaim, onDeposit }) {
   );
 }
 
-// ⚡ ACTIVE BONUS CARD: Based on 'bonus_usage' table
+// ⚡ ACTIVE REWARD CARD (Wagering in progress)
 function ActiveBonusCard({ inst, onRefresh }) {
   const progress = (inst.wagering_completed / inst.wagering_required) * 100;
   const isEligible = inst.status === 'eligible';
@@ -162,7 +174,7 @@ function ActiveBonusCard({ inst, onRefresh }) {
           <CheckCircle2 size={18} /> Convert to Cash
         </button>
       ) : (
-        <div className="mt-10 flex items-center justify-center gap-3 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] bg-slate-950/50 py-4 rounded-xl border border-slate-900">
+        <div className="mt-10 flex items-center justify-center gap-3 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] bg-slate-950/50 py-4 rounded-xl border border-slate-900 font-bold">
            <Lock size={14} className="text-slate-700" /> Locked Credits
         </div>
       )}
@@ -170,18 +182,45 @@ function ActiveBonusCard({ inst, onRefresh }) {
   );
 }
 
-function TabBtn({ active, label, count, onClick }) {
+// 🕰️ EXPIRED / HISTORY CARD (History Tab)
+function ExpiredBonusCard({ inst }) {
+  const isCompleted = inst.status === 'completed';
   return (
-    <button onClick={onClick} className={`px-6 md:px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${active ? 'bg-teal-500 text-slate-950 shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}>
+    <div className="bg-slate-950 border border-slate-900 p-8 rounded-[2.5rem] opacity-60 grayscale-[50%] flex flex-col justify-between shadow-inner">
+      <div>
+        <div className="flex justify-between items-start mb-6">
+          <h3 className="text-lg font-black text-slate-400 uppercase tracking-tight leading-none">${inst.bonus_amount} Record</h3>
+          <span className={`px-2 py-1 rounded text-[8px] font-black uppercase border ${isCompleted ? 'text-emerald-500 border-emerald-500/20' : 'text-rose-500 border-rose-500/20'}`}>
+            {inst.status}
+          </span>
+        </div>
+        <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
+           {isCompleted ? 'Successfully converted to cash' : 'Promotion period expired'}
+        </p>
+      </div>
+
+      <div className="mt-8 flex items-center gap-2 text-slate-700 border-t border-slate-900 pt-4">
+         <TimerOff size={14} />
+         <span className="text-[9px] font-black uppercase tracking-tighter">Settled on {new Date(inst.granted_at).toLocaleDateString()}</span>
+      </div>
+    </div>
+  );
+}
+
+function TabBtn({ active, label, count, onClick, color }) {
+  return (
+    <button onClick={onClick} className={`px-6 md:px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${active ? `${color} text-slate-950 shadow-lg` : 'text-slate-500 hover:text-slate-300'}`}>
       {label} <span className="ml-1 opacity-50">({count})</span>
     </button>
   );
 }
 
-function EmptyState({ text }) {
+function EmptyState({ text, icon }) {
   return (
-    <div className="col-span-full py-24 bg-slate-900/20 rounded-[3rem] border-2 border-dashed border-slate-800 flex flex-col items-center text-center">
-       <Sparkles size={48} className="text-slate-800 mb-4 opacity-20" />
+    <div className="col-span-full py-24 bg-slate-900/20 rounded-[3rem] border-2 border-dashed border-slate-800 flex flex-col items-center text-center animate-in zoom-in-95 duration-500">
+       <div className="text-slate-800 mb-4 opacity-20 transform scale-150">
+          {icon}
+       </div>
        <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-xs italic">{text}</p>
     </div>
   );

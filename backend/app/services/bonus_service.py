@@ -138,7 +138,9 @@ class BonusService:
         now = datetime.now()
 
 
-        bonuses = db.query(BonusUsage).filter(
+        bonuses = db.query(BonusUsage).join(
+        Bonus, BonusUsage.bonus_id == Bonus.bonus_id
+    ).filter(
             BonusUsage.player_id == player_id,
             BonusUsage.status == "active",
             Bonus.tenant_id == tenant_id, # 👈 ISOLATION LAYER

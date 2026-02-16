@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     # Database
     database_url: str
 
+    # DB_USER: str
+    # DB_PASSWORD: str
+    # DB_HOST: str
+    # DB_PORT: int
+    # DB_NAME: str
+
     class Config:
         env_file = ".env"
         extra = "forbid"  # default in v2, explicit for clarity

@@ -8,6 +8,7 @@ from app.services.analytics_service import AnalyticsService
 from app.models.game import Game
 from app.models.game_round import GameRound
 from app.models.bet import Bet
+from app.models.player_stats_summary import PlayerStatsSummary
 from app.models.tenant_game import TenantGame
 from app.models.game_session import GameSession
 from app.game_engines.slot_engine import SlotEngine
@@ -78,6 +79,7 @@ class GameplayService:
             # ─────────────────────────────
             # SESSION CREATION
             # ─────────────────────────────
+        
             session = db.query(GameSession).filter(
                 GameSession.player_id == player_id,
                 GameSession.game_id == game_id,
@@ -89,7 +91,9 @@ class GameplayService:
                     player_id=player_id,
                     game_id=game_id,
                     tenant_id=tenant_id,
-                    status="active"
+                    status="active",
+                    started_at=datetime.now() 
+
                 )
                 db.add(session)
                 db.flush() 
@@ -233,18 +237,43 @@ class GameplayService:
             raise e
 
     @staticmethod
-    def end_session(db: Session, player_id: uuid.UUID, game_id: uuid.UUID):
+    def end_session(db: Session, player_id: uuid.UUID, game_id: uuid.UUID, tenant_id: uuid.UUID):
+        # 🎯 FIX 1: Filter by tenant_id as well
         session = db.query(GameSession).filter(
             GameSession.player_id == player_id,
             GameSession.game_id == game_id,
+            GameSession.tenant_id == tenant_id, # 👈 Added this
             GameSession.status == "active"
         ).first()
 
         if not session:
-            raise HTTPException(status_code=404, detail="Active session not found")
+            raise HTTPException(status_code=404, detail="Active session not found in this casino")
+
+        now = datetime.now()
+
+        # Handle string to datetime conversion
+        start_time = session.started_at
+        if start_time is None:
+           # Fallback: if started_at is missing, treat duration as 0 instead of crashing
+           start_time = now
+        if isinstance(start_time, str):
+            from dateutil import parser
+            start_time = parser.parse(start_time)
+            
+        # 🎯 FIX 2: Use the 'start_time' variable we just checked/parsed
+        duration = int((now - start_time).total_seconds())
 
         session.status = "completed"
-        session.ended_at = datetime.utcnow()
-        db.commit()
+        session.ended_at = now
+        
+        # Update Player Stats
+        stats = db.query(PlayerStatsSummary).filter(
+            PlayerStatsSummary.player_id == player_id
+        ).first()
 
+        if stats:
+            stats.total_play_time_seconds = (stats.total_play_time_seconds or 0) + duration
+            stats.updated_at = now
+
+        db.commit()
         return {"message": "Game session ended successfully"}

@@ -43,9 +43,14 @@ def play_game(req: PlayRequest, db: Session = Depends(get_db), user=Depends(get_
 
 
 @router.post("/end-session/{game_id}")
-def end_game_session(game_id: uuid.UUID, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def end_game_session(
+    game_id: uuid.UUID, 
+    tenant_id: uuid.UUID, # 🎯 Add this as a required query param
+    db: Session = Depends(get_db), 
+    user = Depends(get_current_user)
+):
     enforce_kyc_verified(user)
-    return GameplayService.end_session(db, user.user_id, game_id)
+    return GameplayService.end_session(db, user.user_id, game_id, tenant_id)
 
 
 
@@ -65,11 +70,17 @@ def get_wallet_info(
         raise HTTPException(status_code=404, detail="Wallet not found")
     return data
 
-# Similarly update history if needed
 @router.get("/history/dashboard")
 def get_detailed_history(
     db: Session = Depends(get_db), 
-    user = Depends(get_current_user)
+    user = Depends(get_current_user),
+    game: Optional[str] = Query(None),   # 🎯 Add game filter
+    status: Optional[str] = Query(None) # 🎯 Add status filter
 ):
     enforce_kyc_verified(user)
-    return HistoryService.get_player_dashboard(db, user.user_id)
+    return HistoryService.get_player_dashboard(
+        db, 
+        user.user_id, 
+        game_name=game, 
+        status=status
+    )

@@ -51,37 +51,41 @@ export default function GamePlay() {
     fetchGameDetails();
   }, [gameId, activeTenantId, navigate]); // 🎯 Add dependencies
 
+  // 🎯 Updated to include tenant_id in the URL
   useEffect(() => {
     const checkJackpotStatus = async () => {
       if (!activeTenantId) return;
 
       try {
-        // 🎯 FIX: Pass tenant_id here too (if your backend requires it now or later)
-        // If your jackpot endpoint still uses user.tenant_id, it might return empty list.
-        // It's safer to rely on the backend logic we updated for filtering.
-        const res = await api.get('/player/jackpots/active');
+        // 🎯 FIX: Add ?tenant_id=${activeTenantId} here
+        const res = await api.get(`/player/jackpots/active?tenant_id=${activeTenantId}`);
         const progressive = res.data.find(j => j.jackpot_type === 'PROGRESSIVE');
         setActiveProgressive(progressive); 
       } catch (err) {
-        console.error("Jackpot check failed");
+        console.error("Jackpot check failed", err);
       }
     };
     checkJackpotStatus();
-  }, [activeTenantId]);
+  }, [activeTenantId]); // 🎯 Ensure activeTenantId is in the dependency array
 
-  const handleEndSession = async () => {
-    setEnding(true);
-    try {
-      await api.post(`/gameplay/end-session/${gameId}`);
-      toast.success("Session ended safely");
-      navigate('/lobby');
-    } catch {
-      toast.error("Failed to end session");
-      navigate('/lobby');
-    } finally {
-      setEnding(false);
-    }
-  };
+const handleEndSession = async () => {
+  if (!activeTenantId) return; // Safety check
+
+  setEnding(true);
+  try {
+    // 🎯 FIX: Explicitly append tenant_id as a query parameter
+    // Double check that activeTenantId is not null/undefined here
+    await api.post(`/gameplay/end-session/${gameId}?tenant_id=${activeTenantId}`);
+    
+    toast.success("Session ended safely");
+    navigate('/lobby');
+  } catch (error) {
+    toast.error("Failed to end session");
+    console.error("End Session Error:", error.response?.data);
+  } finally {
+    setEnding(false);
+  }
+};
 
   const renderGameUI = () => {
     // 🎯 PASS optIn PROP TO ALL GAMES

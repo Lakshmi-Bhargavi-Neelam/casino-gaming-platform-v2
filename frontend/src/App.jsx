@@ -41,6 +41,7 @@ import TransactionsPage from './pages/player/TransactionsPage';
 import Bonuses from "./pages/player/Bonuses";
 import BonusDetails from "./pages/player/BonusDetails";
 import TenantSelector from "./pages/player/TenantSelector";
+import PlayerAnalytics from './pages/player/PlayerAnalytics'; // 🎯 Add this import
 
 
 
@@ -167,6 +168,8 @@ function App() {
                       <Route path="play/:gameId" element={<GamePlay />} /> 
   
 <Route path="wallet" element={<WalletPage />} />
+  <Route path="analytics" element={<PlayerAnalytics />} />
+
 <Route path="bonuses" element={<Bonuses />} />
 <Route path="bonuses/:bonusUsageId" element={<BonusDetails />} />
 <Route path="jackpots" element={<JackpotHub />} />

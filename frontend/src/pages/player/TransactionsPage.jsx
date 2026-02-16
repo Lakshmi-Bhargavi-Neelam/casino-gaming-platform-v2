@@ -69,7 +69,7 @@ export default function TransactionsPage() {
             <option value="deposit" className="bg-slate-900">Deposits</option>
             <option value="withdrawal" className="bg-slate-900">Withdrawals</option>
             <option value="bet" className="bg-slate-900">Bets</option>
-            <option value="win" className="bg-slate-900">Winnings</option>
+            {/* <option value="win" className="bg-slate-900">Winnings</option> */}
           </select>
           
           <div className="w-px h-6 bg-slate-800" />

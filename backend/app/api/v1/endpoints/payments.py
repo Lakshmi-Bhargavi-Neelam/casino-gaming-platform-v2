@@ -60,6 +60,7 @@ def player_deposit(
     AnalyticsService.update_financial_stats(
         db=db,
         tenant_id=req.tenant_id,
+        player_id=user.user_id, # 👈 THIS WAS MISSING
         amount=req.amount,
         type="deposit"
     )
@@ -151,6 +152,7 @@ def approve_withdrawal(
         AnalyticsService.update_financial_stats(
             db=db,
             tenant_id=user.tenant_id, # Admin's tenant
+            player_id=withdrawal.player_id, # 👈 THIS WAS MISSING
             amount=float(withdrawal.amount),
             type="withdrawal"
         )

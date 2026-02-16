@@ -3,8 +3,9 @@ from sqlalchemy import desc, extract, cast, Date
 from fastapi import HTTPException
 from decimal import Decimal
 import uuid
+from datetime import date
 from app.services.analytics_service import AnalyticsService
-
+from sqlalchemy.dialects.postgresql import insert  
 from app.models.wallet import Wallet
 from app.models.user import User
 from app.models.country import Country
@@ -13,7 +14,7 @@ from app.models.transaction_type import TransactionType
 from app.models.game_round import GameRound
 from app.models.deposit import Deposit
 from app.models.withdrawal import Withdrawal
-
+from app.models.analytics_snapshot import AnalyticsSnapshot
 
 class WalletService:
 
