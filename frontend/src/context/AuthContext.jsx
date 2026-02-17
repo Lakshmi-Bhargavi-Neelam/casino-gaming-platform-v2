@@ -96,4 +96,6 @@ const selectTenant = (tenantId) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  return useContext(AuthContext);
+}

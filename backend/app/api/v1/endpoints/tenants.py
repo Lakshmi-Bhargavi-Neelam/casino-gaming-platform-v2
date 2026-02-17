@@ -37,8 +37,7 @@ def list_all_tenants(
     ]
 
 # --- Existing: List by Country ---
-@router.get(
-    "/by-country/{country_code}",
+@router.get("/by-country/{country_code}",
     response_model=list[TenantPublic],
 )
 def list_tenants_by_country(

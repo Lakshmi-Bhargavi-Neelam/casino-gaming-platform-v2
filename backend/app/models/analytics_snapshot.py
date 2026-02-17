@@ -1,16 +1,16 @@
 import uuid
-from datetime import date
 from sqlalchemy import Column, String, Integer, Numeric, Date, TIMESTAMP, ForeignKey, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import relationship
 from app.models.base import Base
+
 
 class AnalyticsSnapshot(Base):
     __tablename__ = "analytics_snapshots"
 
     snapshot_id = Column(Integer, primary_key=True, autoincrement=True)
     snapshot_date = Column(Date, nullable=False, server_default=text("CURRENT_DATE"))
-    
+
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.tenant_id"), nullable=False)
     provider_id = Column(UUID(as_uuid=True), ForeignKey("game_providers.provider_id"), nullable=True)
     game_id = Column(UUID(as_uuid=True), ForeignKey("games.game_id"), nullable=True)
@@ -30,15 +30,33 @@ class AnalyticsSnapshot(Base):
     ggr = Column(Numeric(18, 2), default=0)
     rtp_percentage = Column(Numeric(5, 2), default=0)
     active_players_count = Column(Integer, default=0)
+    total_players_registered = Column(Integer, default=0)
 
     created_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
-    updated_at = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))
-
-    # 🎯 Constraint matching your SQL
-    __table_args__ = (
-        UniqueConstraint('snapshot_date', 'tenant_id', 'game_id', name='idx_daily_tenant_game_stats'),
+    updated_at = Column(
+        TIMESTAMP,
+        server_default=text("CURRENT_TIMESTAMP"),
+        onupdate=text("CURRENT_TIMESTAMP")
     )
 
-    # Relationships for easy Dashboard Joins
+    # ✅ CRITICAL FIX — Two constraints
+    __table_args__ = (
+
+        # Game-level stats
+        UniqueConstraint(
+            "snapshot_date",
+            "tenant_id",
+            "game_id",
+            name="uq_daily_tenant_game"
+        ),
+
+        # Tenant-level financial stats (game_id NULL rows)
+        UniqueConstraint(
+            "snapshot_date",
+            "tenant_id",
+            name="uq_daily_tenant"
+        ),
+    )
+
     tenant = relationship("Tenant")
     game = relationship("Game")

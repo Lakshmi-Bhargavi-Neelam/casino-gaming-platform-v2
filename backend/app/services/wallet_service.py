@@ -1,11 +1,12 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, extract, cast, Date
+from sqlalchemy import desc, extract, cast, Date, func
 from fastapi import HTTPException
 from decimal import Decimal
 import uuid
 from datetime import date
-from app.services.analytics_service import AnalyticsService
-from sqlalchemy.dialects.postgresql import insert  
+from sqlalchemy.dialects.postgresql import insert
+from uuid import UUID
+
 from app.models.wallet import Wallet
 from app.models.user import User
 from app.models.country import Country
@@ -15,6 +16,11 @@ from app.models.game_round import GameRound
 from app.models.deposit import Deposit
 from app.models.withdrawal import Withdrawal
 from app.models.analytics_snapshot import AnalyticsSnapshot
+
+
+# ✅ Global constant (correct placement)
+TENANT_TOTAL_GAME_ID = UUID("00000000-0000-0000-0000-000000000000")
+
 
 class WalletService:
 
@@ -37,11 +43,9 @@ class WalletService:
         elif ref_type in ["withdrawal", "withdrawal_rejection"]:
             exists = db.query(Withdrawal).filter_by(withdrawal_id=ref_id).first()
 
-        # 🎯 Bonuses (skip strict FK check)
         elif ref_type in ["bonus", "bonus_conversion"]:
             return
 
-        # 🎯 Jackpots (skip strict FK check)
         elif ref_type in ["jackpot", "jackpot_win"]:
             return
 
@@ -51,14 +55,10 @@ class WalletService:
         if not exists:
             raise HTTPException(400, f"Invalid {ref_type} reference")
 
-    # ✅ FIXED INDENTATION
+    # ─────────────────────────────
+
     @staticmethod
-    def get_wallet(
-        db: Session,
-        player_id: uuid.UUID,
-        wallet_type_code: str,
-        tenant_id: uuid.UUID
-    ):
+    def get_wallet(db: Session, player_id: uuid.UUID, wallet_type_code: str, tenant_id: uuid.UUID):
         wallet = (
             db.query(Wallet)
             .join(Wallet.wallet_type)
@@ -77,15 +77,10 @@ class WalletService:
 
         return wallet
 
+    # ─────────────────────────────
+
     @staticmethod
-    def apply_transaction(
-        db: Session,
-        wallet: Wallet,
-        amount: float,
-        txn_code: str,
-        ref_type=None,
-        ref_id=None,
-    ):
+    def apply_transaction(db: Session, wallet: Wallet, amount: float, txn_code: str, ref_type=None, ref_id=None):
         amount_dec = Decimal(str(amount))
 
         txn_type = db.query(TransactionType).filter_by(
@@ -124,14 +119,10 @@ class WalletService:
         db.add(txn)
         return txn
 
+    # ─────────────────────────────
+
     @staticmethod
-    def get_wallet_dashboard(
-        db: Session,
-        player_id: uuid.UUID,
-        tenant_id: uuid.UUID,
-        tx_type: str = None,
-        month: str = None,
-    ):
+    def get_wallet_dashboard(db: Session, player_id: uuid.UUID, tenant_id: uuid.UUID, tx_type: str = None, month: str = None):
         wallet = (
             db.query(Wallet)
             .join(Wallet.wallet_type)
@@ -191,21 +182,28 @@ class WalletService:
             ],
         }
 
+    # ─────────────────────────────
+    # ✅ Properly inside class
+    # ─────────────────────────────
+
     @staticmethod
     def init_tenant_profile(db: Session, player_id: uuid.UUID, tenant_id: uuid.UUID):
-        """Initialize CASH & BONUS wallets for tenant context."""
 
-        cash_wallet = db.query(Wallet).join(Wallet.wallet_type).filter(
-            Wallet.player_id == player_id,
-            Wallet.tenant_id == tenant_id,
-            Wallet.wallet_type.has(wallet_type_code="CASH")
-        ).first()
+        cash_wallet = (
+            db.query(Wallet)
+            .join(Wallet.wallet_type)
+            .filter(
+                Wallet.player_id == player_id,
+                Wallet.tenant_id == tenant_id,
+                Wallet.wallet_type.has(wallet_type_code="CASH")
+            )
+            .first()
+        )
 
         if cash_wallet:
             return {"message": "Profile already exists"}
 
         user = db.query(User).filter(User.user_id == player_id).first()
-
         if not user:
             raise HTTPException(404, "User not found")
 
@@ -216,26 +214,27 @@ class WalletService:
         if not country:
             raise HTTPException(400, "Invalid country configuration")
 
-         # ─────────────────────────────
-        # 🎯 ANALYTICS: Track New Registration
-        # ─────────────────────────────
-        # We can create a specific method in AnalyticsService to increment total_players_registered
-        # For now, we can use a generic update to the snapshot
         stmt = insert(AnalyticsSnapshot).values(
             snapshot_date=date.today(),
             tenant_id=tenant_id,
-            total_players_registered=1
+            game_id=TENANT_TOTAL_GAME_ID,
+            total_players_registered=1,
         ).on_conflict_do_update(
-            constraint="analytics_snapshots_snapshot_date_tenant_id_game_id_key",
-            set_={"total_players_registered": AnalyticsSnapshot.total_players_registered + 1}
+            index_elements=["snapshot_date", "tenant_id", "game_id"],
+            set_={
+                "total_players_registered":
+                    AnalyticsSnapshot.total_players_registered + 1,
+                "updated_at": func.now(),
+            }
         )
+
         db.execute(stmt)
 
         db.add(Wallet(
             player_id=player_id,
             tenant_id=tenant_id,
             currency_id=country.default_currency_id,
-            wallet_type_id=1,  # CASH
+            wallet_type_id=1,
             balance=Decimal("0.00"),
             is_active=True
         ))
@@ -244,7 +243,7 @@ class WalletService:
             player_id=player_id,
             tenant_id=tenant_id,
             currency_id=None,
-            wallet_type_id=2,  # BONUS
+            wallet_type_id=2,
             balance=Decimal("0.00"),
             is_active=True
         ))

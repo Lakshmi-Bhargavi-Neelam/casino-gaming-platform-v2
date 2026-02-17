@@ -24,8 +24,7 @@ from app.api.v1.endpoints import player_analytics # 🎯 2. Import player side t
 # app/api/v1/api.py
 
 from app.api.v1.endpoints import tenant_analytics 
-
-
+from app.api.v1.endpoints import super_admin_analytics
 
 
 
@@ -60,4 +59,6 @@ api_router.include_router(player_jackpots.router)
 # 🎯 2. Register the Analytics Router
 api_router.include_router(tenant_analytics.router)
 api_router.include_router(player_analytics.router)
+api_router.include_router(super_admin_analytics.router)
+
 
