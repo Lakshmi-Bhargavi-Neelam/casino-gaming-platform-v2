@@ -1,11 +1,11 @@
 import { useEffect } from "react";
 import { Outlet, NavLink, useNavigate, Navigate } from "react-router-dom";
-import { 
-  Home, 
-  History, 
-  Wallet, 
-  User, 
-  ShieldCheck, 
+import {
+  Home,
+  History,
+  Wallet,
+  User,
+  ShieldCheck,
   ChevronRight,
   Zap,
   TrendingUp,
@@ -14,7 +14,8 @@ import {
   Trophy,
   Receipt,
   Gift,
-  BarChart3 // 🎯 Added for Analytics
+  BarChart3, // 🎯 Added for Analytics
+  Shield // Responsible Gaming
 
 } from "lucide-react"; 
 import { useAuth } from "../../context/AuthContext";
@@ -119,8 +120,17 @@ export default function PlayerLayout() {
           </NavLink>
           
           <NavLink to="/player/kyc" className={navItemClass}>
-            <ShieldCheck size={20} /> 
+            <ShieldCheck size={20} />
             <span className="font-bold">Identity (KYC)</span>
+          </NavLink>
+
+          <div className="px-4 mt-8 mb-3 text-[10px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2">
+            <Shield size={12} /> Protection
+          </div>
+
+          <NavLink to="/player/limits" className={navItemClass}>
+            <Shield size={20} className="text-amber-500" />
+            <span className="font-bold">Responsible Gaming</span>
           </NavLink>
         </nav>
 

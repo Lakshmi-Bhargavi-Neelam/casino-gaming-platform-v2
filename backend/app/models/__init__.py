@@ -49,6 +49,7 @@ from app.models.bonus_usage import BonusUsage
 # ... existing imports
 from .analytics_snapshot import AnalyticsSnapshot
 from .player_stats_summary import PlayerStatsSummary
+from .player_limit import PlayerLimit
 # from app.models.payment_refund import PaymentRefund
 
 # from app.models.compliance_flag import ComplianceFlag

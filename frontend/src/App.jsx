@@ -42,6 +42,7 @@ import Bonuses from "./pages/player/Bonuses";
 import BonusDetails from "./pages/player/BonusDetails";
 import TenantSelector from "./pages/player/TenantSelector";
 import PlayerAnalytics from './pages/player/PlayerAnalytics'; // 🎯 Add this import
+import ResponsibleGaming from './pages/player/ResponsibleGaming'; // Responsible Gaming Limits
 
 
 
@@ -173,6 +174,7 @@ function App() {
 <Route path="bonuses" element={<Bonuses />} />
 <Route path="bonuses/:bonusUsageId" element={<BonusDetails />} />
 <Route path="jackpots" element={<JackpotHub />} />
+<Route path="limits" element={<ResponsibleGaming />} />
 <Route path="kyc" element={<PlayerKYC />} />
 <Route path="history" element={<History />} />
   <Route path="transactions" element={<TransactionsPage />} />
