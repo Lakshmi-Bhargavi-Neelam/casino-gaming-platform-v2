@@ -95,7 +95,26 @@ class GameplayService:
                 )
 
             # ─────────────────────────────
-            # SESSION CREATION
+            # 🎯 RESPONSIBLE GAMING: Check LOSS Limit (before bet)
+            # ─────────────────────────────
+            # Check if this bet could result in exceeding loss limit
+            # (worst case: player loses the entire bet)
+            loss_check = ResponsibleGamingService.check_limit(
+                db=db,
+                player_id=player_id,
+                tenant_id=tenant_id,
+                limit_type="LOSS",
+                amount=bet_amount,  # Max possible loss = bet amount
+                period="DAILY"
+            )
+            if not loss_check.within_limit:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Loss limit exceeded. Your daily loss limit is ${loss_check.limit_value:.2f}. You have already lost ${loss_check.current_usage:.2f}. Remaining: ${loss_check.remaining:.2f}"
+                )
+
+            # ─────────────────────────────
+            # SESSION CREATION & LIMIT CHECK
             # ─────────────────────────────
 
             session = db.query(GameSession).filter(
@@ -104,42 +123,58 @@ class GameplayService:
                 GameSession.status == "active"
             ).first()
 
-            if not session:
-                # ─────────────────────────────
-                # 🎯 RESPONSIBLE GAMING: Check SESSION Limit for new session
-                # ─────────────────────────────
-                session_check = ResponsibleGamingService.check_limit(
-                    db=db,
-                    player_id=player_id,
-                    tenant_id=tenant_id,
-                    limit_type="SESSION",
-                    amount=1,  # Just checking if they can start a session
-                    period="DAILY"
-                )
-                # If they have a session limit, check current usage
-                if session_check.limit_value > 0:
-                    session_limit = ResponsibleGamingService.get_limit_by_type(
-                        db=db,
-                        player_id=player_id,
-                        tenant_id=tenant_id,
-                        limit_type="SESSION",
-                        period="DAILY"
-                    )
-                    if session_limit:
-                        current_minutes = float(session_limit.current_usage or 0)
-                        max_minutes = float(session_limit.limit_value)
-                        if current_minutes >= max_minutes:
-                            raise HTTPException(
-                                status_code=400,
-                                detail=f"Session limit exceeded. Your daily session limit is {max_minutes:.0f} minutes. You have already used {current_minutes:.0f} minutes."
-                            )
+            # ─────────────────────────────
+            # 🎯 RESPONSIBLE GAMING: Check SESSION Limit (PER GAME)
+            # ─────────────────────────────
+            session_limit = ResponsibleGamingService.get_limit_by_type(
+                db=db,
+                player_id=player_id,
+                tenant_id=tenant_id,
+                limit_type="SESSION",
+                period="DAILY"
+            )
 
+            if session_limit:
+                max_minutes = float(session_limit.limit_value)
+                current_daily_minutes = float(session_limit.current_usage or 0)
+                current_session_minutes = 0
+
+                if session:
+                    # EXISTING SESSION: Calculate current session time
+                    session_start = session.started_at
+                    if session_start:
+                        if isinstance(session_start, str):
+                            from dateutil import parser
+                            session_start = parser.parse(session_start)
+                        current_session_minutes = (datetime.now() - session_start).total_seconds() / 60.0
+
+                    # Total time = daily usage from completed sessions + current ongoing session
+                    total_session_minutes = current_daily_minutes + current_session_minutes
+
+                    if total_session_minutes >= max_minutes:
+                        # Auto-end this session and block the bet
+                        session.status = "completed"
+                        session.ended_at = datetime.now()
+                        db.commit()
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Session limit exceeded for this game. Your daily session limit is {max_minutes:.0f} minutes. You have used {total_session_minutes:.1f} minutes. This game session has been automatically ended."
+                        )
+                else:
+                    # NEW SESSION: Check if player has remaining session time
+                    if current_daily_minutes >= max_minutes:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"Session limit exceeded. Your daily session limit is {max_minutes:.0f} minutes. You have already used {current_daily_minutes:.0f} minutes."
+                        )
+
+            if not session:
                 session = GameSession(
                     player_id=player_id,
                     game_id=game_id,
                     tenant_id=tenant_id,
                     status="active",
-                    started_at=datetime.now() 
+                    started_at=datetime.now()
 
                 )
                 db.add(session)
