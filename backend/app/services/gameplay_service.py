@@ -17,7 +17,8 @@ from app.game_engines.dice_engine import DiceEngine # Ensure this is imported
 from app.game_engines.mines_engine import MinesEngine
 from app.services.bonus_service import BonusService # 🎯 1. IMPORT BONUS SERVICE
 from app.services.jackpot_service import JackpotService # 🎯 Import this
-from app.game_engines.crash_engine import CrashEngine 
+from app.game_engines.crash_engine import CrashEngine
+from app.services.responsible_gaming_service import ResponsibleGamingService  # Responsible Gaming 
 
 
 
@@ -77,9 +78,26 @@ class GameplayService:
             )
 
             # ─────────────────────────────
+            # 🎯 RESPONSIBLE GAMING: Check WAGER Limit
+            # ─────────────────────────────
+            wager_check = ResponsibleGamingService.check_limit(
+                db=db,
+                player_id=player_id,
+                tenant_id=tenant_id,
+                limit_type="WAGER",
+                amount=bet_amount,
+                period="DAILY"
+            )
+            if not wager_check.within_limit:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Wager limit exceeded. Your daily wager limit is ${wager_check.limit_value:.2f}. You have already wagered ${wager_check.current_usage:.2f}. Remaining: ${wager_check.remaining:.2f}"
+                )
+
+            # ─────────────────────────────
             # SESSION CREATION
             # ─────────────────────────────
-        
+
             session = db.query(GameSession).filter(
                 GameSession.player_id == player_id,
                 GameSession.game_id == game_id,
@@ -87,6 +105,35 @@ class GameplayService:
             ).first()
 
             if not session:
+                # ─────────────────────────────
+                # 🎯 RESPONSIBLE GAMING: Check SESSION Limit for new session
+                # ─────────────────────────────
+                session_check = ResponsibleGamingService.check_limit(
+                    db=db,
+                    player_id=player_id,
+                    tenant_id=tenant_id,
+                    limit_type="SESSION",
+                    amount=1,  # Just checking if they can start a session
+                    period="DAILY"
+                )
+                # If they have a session limit, check current usage
+                if session_check.limit_value > 0:
+                    session_limit = ResponsibleGamingService.get_limit_by_type(
+                        db=db,
+                        player_id=player_id,
+                        tenant_id=tenant_id,
+                        limit_type="SESSION",
+                        period="DAILY"
+                    )
+                    if session_limit:
+                        current_minutes = float(session_limit.current_usage or 0)
+                        max_minutes = float(session_limit.limit_value)
+                        if current_minutes >= max_minutes:
+                            raise HTTPException(
+                                status_code=400,
+                                detail=f"Session limit exceeded. Your daily session limit is {max_minutes:.0f} minutes. You have already used {current_minutes:.0f} minutes."
+                            )
+
                 session = GameSession(
                     player_id=player_id,
                     game_id=game_id,
@@ -154,7 +201,19 @@ class GameplayService:
                 bet_amount,
                 "bet",
                 "bet",
-                round_obj.round_id 
+                round_obj.round_id
+            )
+
+            # ─────────────────────────────
+            # 🎯 RESPONSIBLE GAMING: Update WAGER Usage
+            # ─────────────────────────────
+            ResponsibleGamingService.update_usage(
+                db=db,
+                player_id=player_id,
+                tenant_id=tenant_id,
+                limit_type="WAGER",
+                amount=bet_amount,
+                period="DAILY"
             )
 
             # ─────────────────────────────
@@ -173,6 +232,36 @@ class GameplayService:
             # ─────────────────────────────
             result = engine.run(game_stake, **kwargs)
             win_amount = result["win_amount"]
+
+            # ─────────────────────────────
+            # 🎯 RESPONSIBLE GAMING: Check & Update LOSS Limit
+            # ─────────────────────────────
+            net_loss = bet_amount - win_amount  # Positive if lost, negative if won
+            if net_loss > 0:
+                # Check if this loss would exceed limit
+                loss_check = ResponsibleGamingService.check_limit(
+                    db=db,
+                    player_id=player_id,
+                    tenant_id=tenant_id,
+                    limit_type="LOSS",
+                    amount=net_loss,
+                    period="DAILY"
+                )
+                if not loss_check.within_limit:
+                    # This shouldn't happen in normal flow, but protect against edge cases
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Loss limit exceeded. Your daily loss limit is ${loss_check.limit_value:.2f}."
+                    )
+                # Update loss usage
+                ResponsibleGamingService.update_usage(
+                    db=db,
+                    player_id=player_id,
+                    tenant_id=tenant_id,
+                    limit_type="LOSS",
+                    amount=net_loss,
+                    period="DAILY"
+                )
 
             # ─────────────────────────────
             # WALLET CREDIT (WIN)
@@ -262,6 +351,20 @@ class GameplayService:
             
         # 🎯 FIX 2: Use the 'start_time' variable we just checked/parsed
         duration = int((now - start_time).total_seconds())
+
+        # ─────────────────────────────
+        # 🎯 RESPONSIBLE GAMING: Update SESSION Usage (in minutes)
+        # ─────────────────────────────
+        duration_minutes = duration / 60.0  # Convert seconds to minutes
+        if duration_minutes > 0:
+            ResponsibleGamingService.update_usage(
+                db=db,
+                player_id=player_id,
+                tenant_id=tenant_id,
+                limit_type="SESSION",
+                amount=duration_minutes,
+                period="DAILY"
+            )
 
         session.status = "completed"
         session.ended_at = now

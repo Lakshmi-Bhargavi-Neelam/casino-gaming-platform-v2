@@ -12,6 +12,7 @@ from app.models.deposit import Deposit
 from app.models.withdrawal import Withdrawal
 from app.core.kyc_guard import enforce_kyc_verified
 from app.services.bonus_service import BonusService
+from app.services.responsible_gaming_service import ResponsibleGamingService  # Responsible Gaming
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -27,6 +28,23 @@ def player_deposit(
     user = Depends(get_current_user)
 ):
     enforce_kyc_verified(user)
+
+    # ─────────────────────────────
+    # 🎯 RESPONSIBLE GAMING: Check Deposit Limit
+    # ─────────────────────────────
+    limit_check = ResponsibleGamingService.check_limit(
+        db=db,
+        player_id=user.user_id,
+        tenant_id=req.tenant_id,
+        limit_type="DEPOSIT",
+        amount=req.amount,
+        period="DAILY"
+    )
+    if not limit_check.within_limit:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Deposit limit exceeded. Your daily deposit limit is ${limit_check.limit_value:.2f}. You have already deposited ${limit_check.current_usage:.2f}. Remaining: ${limit_check.remaining:.2f}"
+        )
 
     # 1️⃣ Get CASH wallet
     cash_wallet = WalletService.get_wallet(db, user.user_id, "CASH", req.tenant_id)
@@ -52,6 +70,18 @@ def player_deposit(
         txn_code="deposit",
         ref_type="deposit",
         ref_id=deposit.deposit_id
+    )
+
+    # ─────────────────────────────
+    # 🎯 RESPONSIBLE GAMING: Update Deposit Usage
+    # ─────────────────────────────
+    ResponsibleGamingService.update_usage(
+        db=db,
+        player_id=user.user_id,
+        tenant_id=req.tenant_id,
+        limit_type="DEPOSIT",
+        amount=req.amount,
+        period="DAILY"
     )
 
         # ─────────────────────────────
