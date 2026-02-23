@@ -10,7 +10,7 @@ def reset_password(email, new_password):
         user = db.query(User).filter(User.email == email).first()
         
         if not user:
-            print(f"❌ Error: User with email '{email}' not found!")
+            print(f" Error: User with email '{email}' not found!")
             return
 
         # 2. Update password
@@ -19,8 +19,8 @@ def reset_password(email, new_password):
         
         # 3. Commit
         db.commit()
-        print(f"✅ Password successfully updated for {email}")
-        print(f"👉 New Password: {new_password}")
+        print(f" Password successfully updated for {email}")
+        print(f"New Password: {new_password}")
         
     except Exception as e:
         print(f"Error: {e}")

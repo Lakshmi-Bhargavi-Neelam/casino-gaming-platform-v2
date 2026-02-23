@@ -92,7 +92,6 @@ export default function AddGame() {
   return (
     <div className="max-w-4xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
       
-      {/* 🚀 Header */}
       <header className="mb-10 text-center md:text-left">
         <h1 className="text-4xl font-black text-white tracking-tight flex items-center justify-center md:justify-start gap-4">
           <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-lg shadow-indigo-500/5">
@@ -105,10 +104,9 @@ export default function AddGame() {
         </p>
       </header>
       
-      {/* 🛠 Main Form Card */}
+      {/* Main Form Card */}
       <div className="bg-slate-800/50 backdrop-blur-xl rounded-[2.5rem] border border-slate-700/50 shadow-2xl overflow-hidden">
         
-        {/* Animated Accent Bar */}
         <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-teal-500 to-emerald-500"></div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-8 md:p-12 space-y-10">

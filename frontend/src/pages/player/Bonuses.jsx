@@ -34,7 +34,7 @@ export default function Bonuses() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // 🎯 Filter Logic for the Tabs
+  //  Filter Logic for the Tabs
   const activeRewards = instances.filter(inst => inst.status === 'active' || inst.status === 'eligible');
   const historicalRewards = instances.filter(inst => inst.status === 'completed' || inst.status === 'expired');
 
@@ -66,7 +66,7 @@ export default function Bonuses() {
           <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-2">Manage and discover premium casino rewards</p>
         </div>
 
-        {/* 🎯 Tab Switcher */}
+        {/*  Tab Switcher */}
         <div className="bg-slate-900 p-1.5 rounded-2xl flex flex-wrap gap-2 border border-slate-800 shadow-2xl">
           <TabBtn active={activeTab === 'discover'} label="Live Promotions" count={available.length} onClick={() => setActiveTab('discover')} color="bg-indigo-600" />
           <TabBtn active={activeTab === 'rewards'} label="My Rewards" count={activeRewards.length} onClick={() => setActiveTab('rewards')} color="bg-teal-500" />
@@ -105,7 +105,7 @@ export default function Bonuses() {
   );
 }
 
-// 🎁 PROMOTION CARD (Available to join)
+//  PROMOTION CARD (Available to join)
 function PromotionCard({ promo, onClaim, onDeposit }) {
   return (
     <div className="group relative bg-slate-900/40 backdrop-blur-md border border-slate-800 p-8 rounded-[2.5rem] flex flex-col justify-between hover:border-indigo-500/50 transition-all duration-500 shadow-xl">
@@ -182,7 +182,7 @@ function ActiveBonusCard({ inst, onRefresh }) {
   );
 }
 
-// 🕰️ EXPIRED / HISTORY CARD (History Tab)
+//  EXPIRED / HISTORY CARD (History Tab)
 function ExpiredBonusCard({ inst }) {
   const isCompleted = inst.status === 'completed';
   return (

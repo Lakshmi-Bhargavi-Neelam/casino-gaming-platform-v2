@@ -11,14 +11,14 @@ class TenantAdminService:
 
     @staticmethod
     def create_tenant_admin(db: Session, payload):
-        # 1️⃣ Strict Domain Validation
+        #Strict Domain Validation
         PlayerService.validate_email_domain(payload.email)
 
         tenant = db.query(Tenant).filter(Tenant.tenant_id == payload.tenant_id).first()
         if not tenant:
             raise HTTPException(404, "Tenant not found")
 
-        # 2️⃣ Check if the provided real email is already used by anyone
+        # Check if the provided real email is already used by anyone
         existing_email = db.query(User).filter(
             User.email == payload.email,
             User.tenant_id == payload.tenant_id
@@ -26,7 +26,7 @@ class TenantAdminService:
         if existing_email:
              raise HTTPException(status.HTTP_409_CONFLICT, "Email is already registered")
 
-        # 3️⃣ Enforce one admin per tenant (Business rule)
+        # Enforce one admin per tenant (Business rule)
         existing_admin = db.query(User).filter(
             User.tenant_id == tenant.tenant_id,
             User.role.has(role_name="TENANT_ADMIN")
@@ -40,7 +40,7 @@ class TenantAdminService:
         user = User(
             first_name=payload.first_name,
             last_name=payload.last_name,
-            email=payload.email, # Use the real email provided in the form
+            email=payload.email, 
             password_hash=get_password_hash(payload.password),
             role_id=role.role_id,
             tenant_id=tenant.tenant_id,

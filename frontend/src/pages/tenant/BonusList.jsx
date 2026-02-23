@@ -46,7 +46,6 @@ export default function BonusList() {
     return { label: 'LIVE', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]' };
   };
 
-  // 🎯 Split data for the new layout
   const liveBonuses = bonuses.filter(b => getStatus(b).label !== 'EXPIRED');
   const expiredBonuses = bonuses.filter(b => getStatus(b).label === 'EXPIRED');
 
@@ -161,7 +160,6 @@ export default function BonusList() {
   );
 }
 
-// 🎯 Reusable Sub-Component: Bonus Card (for Live ones)
 function BonusCard({ bonus, index, status }) {
     return (
         <div 

@@ -20,17 +20,17 @@ export default function GamePlay() {
   const [loading, setLoading] = useState(true);
   const [ending, setEnding] = useState(false);
 
-  // 🎯 NEW STATE: Jackpot Logic
+  //  NEW STATE: Jackpot Logic
   const [activeProgressive, setActiveProgressive] = useState(null); 
   const [optIn, setOptIn] = useState(false); 
 
   useEffect(() => {
     const fetchGameDetails = async () => {
-      // 🎯 Guard: Wait for tenant ID
+      //  Guard: Wait for tenant ID
       if (!activeTenantId) return; 
 
       try {
-        // 🎯 FIX: Pass tenant_id query param
+        //  Pass tenant_id query param
         const res = await api.get(`/player/player/lobby-games?tenant_id=${activeTenantId}`);
         const found = res.data.find(g => g.game_id === gameId);
         
@@ -49,15 +49,15 @@ export default function GamePlay() {
     };
     
     fetchGameDetails();
-  }, [gameId, activeTenantId, navigate]); // 🎯 Add dependencies
+  }, [gameId, activeTenantId, navigate]);
 
-  // 🎯 Updated to include tenant_id in the URL
+  //  Updated to include tenant_id in the URL
   useEffect(() => {
     const checkJackpotStatus = async () => {
       if (!activeTenantId) return;
 
       try {
-        // 🎯 FIX: Add ?tenant_id=${activeTenantId} here
+        // Add ?tenant_id=${activeTenantId} here
         const res = await api.get(`/player/jackpots/active?tenant_id=${activeTenantId}`);
         const progressive = res.data.find(j => j.jackpot_type === 'PROGRESSIVE');
         setActiveProgressive(progressive); 
@@ -66,15 +66,15 @@ export default function GamePlay() {
       }
     };
     checkJackpotStatus();
-  }, [activeTenantId]); // 🎯 Ensure activeTenantId is in the dependency array
+  }, [activeTenantId]); 
 
 const handleEndSession = async () => {
-  if (!activeTenantId) return; // Safety check
+  if (!activeTenantId) return;
 
   setEnding(true);
   try {
-    // 🎯 FIX: Explicitly append tenant_id as a query parameter
-    // Double check that activeTenantId is not null/undefined here
+    //Explicitly append tenant_id as a query parameter
+ 
     await api.post(`/gameplay/end-session/${gameId}?tenant_id=${activeTenantId}`);
     
     toast.success("Session ended safely");
@@ -88,7 +88,7 @@ const handleEndSession = async () => {
 };
 
   const renderGameUI = () => {
-    // 🎯 PASS optIn PROP TO ALL GAMES
+    // PASS optIn PROP TO ALL GAMES
     const commonProps = { gameId, gameName: game.game_name, optIn, tenantId: activeTenantId};
 
     switch (game.engine_type?.toLowerCase()) {
@@ -134,7 +134,7 @@ const handleEndSession = async () => {
         </div>
       </div>
 
-      {/* 🎯 JACKPOT OPT-IN TOGGLE (Only shows if Jackpot Exists) */}
+      {/* JACKPOT OPT-IN TOGGLE (Only shows if Jackpot Exists) */}
       {activeProgressive && (
          <div className="mx-2 p-4 bg-gradient-to-r from-indigo-900 to-purple-900 rounded-xl border border-indigo-500/50 flex items-center justify-between shadow-lg animate-in slide-in-from-top-2">
             <div className="flex items-center gap-3">
@@ -168,90 +168,4 @@ const handleEndSession = async () => {
   );
 }
 
-
-// import React, { useState, useEffect } from 'react';
-// import { useParams, useNavigate } from 'react-router-dom';
-// import { ChevronLeft, ShieldCheck, DoorOpen } from 'lucide-react';
-// import api from '../../lib/axios';
-// import { toast } from 'react-hot-toast';
-// import SlotMachine from '../../components/SlotMachine';
-
-// export default function GamePlay() {
-//   const { gameId } = useParams();
-//   const navigate = useNavigate();
-
-//   const [game, setGame] = useState(null);
-//   const [loading, setLoading] = useState(true);
-//   const [ending, setEnding] = useState(false);
-
-//   // 🎮 Load game info
-//   useEffect(() => {
-//     const fetchGameDetails = async () => {
-//       try {
-//         const res = await api.get('/player/player/lobby-games');
-//         const found = res.data.find(g => g.game_id === gameId);
-//         setGame(found);
-//       } catch {
-//         toast.error("Could not load game details");
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-//     fetchGameDetails();
-//   }, [gameId]);
-
-//   // 🚪 End session
-//   const handleEndSession = async () => {
-//     setEnding(true);
-//     try {
-//       await api.post(`/gameplay/end-session/${gameId}`);
-//       toast.success("Session ended safely");
-//       navigate('/lobby');
-//     } catch {
-//       toast.error("Failed to end session");
-//       navigate('/lobby');
-//     } finally {
-//       setEnding(false);
-//     }
-//   };
-
-//   if (loading) return <div className="p-10 text-center text-slate-500">Initializing Engine...</div>;
-//   if (!game) return <div className="p-10 text-center">Game not found.</div>;
-
-//   return (
-//     <div className="max-w-5xl mx-auto space-y-6">
-//       {/* Header */}
-//       <div className="flex items-center justify-between">
-//         <button
-//           onClick={() => navigate('/lobby')}
-//           className="flex items-center gap-2 text-slate-400 hover:text-white transition"
-//         >
-//           <ChevronLeft size={20} /> Back to Lobby
-//         </button>
-
-//         <div className="flex items-center gap-4">
-//           <button
-//             onClick={handleEndSession}
-//             disabled={ending}
-//             className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl text-xs font-bold"
-//           >
-//             <DoorOpen size={16} /> {ending ? 'ENDING...' : 'END SESSION'}
-//           </button>
-
-//           <div className="h-6 w-[1px] bg-slate-800 mx-2" />
-
-//           <div className="flex items-center gap-2">
-//             <span className="text-[10px] font-bold text-slate-500 uppercase">Provably Fair</span>
-//             <ShieldCheck size={18} className="text-green-500" />
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* 🎰 GAME AREA */}
-//       <div className="bg-slate-900 rounded-3xl border border-slate-800 aspect-video flex items-center justify-center shadow-2xl">
-//         <SlotMachine gameId={gameId} />
-//       </div>
-//     </div>
-//   );
-// }
 

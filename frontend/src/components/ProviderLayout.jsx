@@ -25,7 +25,7 @@ export default function ProviderLayout() {
   return (
     <div className="flex h-screen bg-[#0f172a] text-slate-200 font-sans overflow-hidden">
 
-      {/* 🟣 Sidebar: Glass-morphism Dark Slate */}
+      {/*  Sidebar: Glass-morphism Dark Slate */}
       <aside className="w-72 bg-slate-900 border-r border-slate-800 flex flex-col flex-shrink-0 relative z-20 shadow-2xl">
         
         {/* Brand/Logo Section */}
@@ -65,7 +65,7 @@ export default function ProviderLayout() {
           </NavLink>
         </nav>
 
-        {/* 🚪 Logout Section */}
+        {/* Logout Section */}
         <div className="p-4 bg-slate-900/80 backdrop-blur-sm border-t border-slate-800">
           <button 
             onClick={logout}
@@ -81,10 +81,9 @@ export default function ProviderLayout() {
         </div>
       </aside>
 
-      {/* ⚪ Main Content Area */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-[#0f172a] relative">
         
-        {/* Top Header: Glass-morphism Fixed Bar */}
         <header className="h-20 bg-slate-900/50 backdrop-blur-xl border-b border-slate-800 flex items-center px-10 justify-between sticky top-0 z-10">
            <div className="flex items-center gap-3">
               <Cpu size={18} className="text-teal-500" />
@@ -108,13 +107,10 @@ export default function ProviderLayout() {
            </div>
         </header>
 
-        {/* Content Area with Ambient Glow */}
         <main className="flex-1 overflow-y-auto p-10 custom-scrollbar relative">
-          {/* Subtle Ambient Background Glows */}
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -z-10"></div>
           <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-teal-500/5 rounded-full blur-[100px] pointer-events-none -z-10"></div>
           
-          {/* Outlet Content with Slide Animation */}
           <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
             <Outlet />
           </div>

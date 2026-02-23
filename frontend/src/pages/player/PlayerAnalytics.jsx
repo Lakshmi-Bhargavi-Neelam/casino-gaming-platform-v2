@@ -35,7 +35,7 @@ export default function PlayerAnalytics() {
     </div>
   );
 
-  // 2. 🎯 SAFETY GUARD: Fallback UI if player has no activity yet
+  // 2.  SAFETY GUARD: Fallback UI if player has no activity yet
   if (!data || data.has_data === false) {
     return (
       <div className="max-w-4xl mx-auto py-20 text-center animate-in fade-in duration-700">

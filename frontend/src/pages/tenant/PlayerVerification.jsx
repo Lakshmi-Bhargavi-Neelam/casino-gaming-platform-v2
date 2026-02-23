@@ -44,7 +44,6 @@ export default function PlayerVerification() {
   return (
     <div className="w-full max-w-7xl mx-auto p-6 space-y-10 animate-in fade-in duration-700">
       
-      {/* 👑 HEADER SECTION */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-4">
@@ -69,7 +68,7 @@ export default function PlayerVerification() {
         </div>
       </header>
 
-      {/* 🔍 SEARCH & FILTERS */}
+      {/*  SEARCH & FILTERS */}
       <div className="flex flex-col md:flex-row gap-4 items-center">
         <div className="relative group flex-1 w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-teal-400 transition-colors" size={20} />
@@ -86,7 +85,7 @@ export default function PlayerVerification() {
         </button>
       </div>
 
-      {/* 🗂️ PLAYERS GRID */}
+      {/*  PLAYERS GRID */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3].map(i => (
@@ -114,7 +113,7 @@ export default function PlayerVerification() {
         </div>
       )}
 
-      {/* 🔍 REVIEW MODAL */}
+      {/* REVIEW MODAL */}
       {selectedUser && (
         <ReviewModal 
           user={selectedUser} 

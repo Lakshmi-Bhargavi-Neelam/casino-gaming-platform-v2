@@ -47,7 +47,6 @@ export default function JackpotManagement() {
       toast.success(`${data.jackpot_type} Jackpot deployed successfully!`);
       reset();
     } catch (err) {
-    // 🎯 FIX: This block prevents the white screen crash
     const detail = err.response?.data?.detail;
     
     if (Array.isArray(detail)) {
@@ -104,7 +103,7 @@ export default function JackpotManagement() {
           {/* Dynamic Logic Container */}
           <div className="p-8 bg-slate-900 rounded-[2rem] border border-slate-800 space-y-8 shadow-inner relative overflow-hidden">
              
-             {/* 💰 Seed Amount - Always Shown */}
+             {/*  Seed Amount - Always Shown */}
              <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-end">
                 <div className="space-y-2">
                     <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-1 flex items-center gap-2">

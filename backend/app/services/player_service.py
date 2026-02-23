@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-import re # Added for regex validation
+import re 
 from uuid import UUID
 from app.models.user import User
 from app.models.player import Player
@@ -11,7 +11,6 @@ from app.models.tenant import Tenant
 from app.models.tenant_country import TenantCountry
 from app.core.security import get_password_hash
 
-# List of allowed public email providers for strict constraints
 ALLOWED_EMAIL_DOMAINS = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"]
 
 class PlayerService:

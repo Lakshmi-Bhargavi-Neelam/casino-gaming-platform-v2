@@ -15,7 +15,6 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../lib/axios';
 
-// --- CONFIGURATION ---
 const ALLOWED_DOMAINS = ["@gmail.com", "@yahoo.com", "@outlook.com", "@hotmail.com", "@icloud.com"];
 
 const COUNTRIES = [
@@ -34,7 +33,6 @@ const slideVariants = {
 };
 
 export default function PlayerRegistration() {
-  // 🎯 Refactored to 2 steps: 1 (Jurisdiction), 2 (Identity Details)
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(0);
   const [selectedCountry, setSelectedCountry] = useState(null);
@@ -74,7 +72,6 @@ export default function PlayerRegistration() {
     };
 
     try {
-      // 🎯 Backend now creates a Global Player Record
       await api.post('/players/register', payload);
       toast.success('Global account created! Verification email sent.');
       setTimeout(() => navigate('/login'), 1500);
@@ -86,13 +83,11 @@ export default function PlayerRegistration() {
   return (
     <div className="min-h-screen bg-[#0B0F1A] relative overflow-hidden flex flex-col items-center justify-center p-4 font-sans text-white">
       
-      {/* Background Decor */}
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-600/10 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="w-full max-w-lg relative z-10">
         
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 mb-4 shadow-lg shadow-emerald-500/20">
             <span className="font-bold text-2xl">X</span>
@@ -101,7 +96,6 @@ export default function PlayerRegistration() {
           <p className="text-gray-400 text-sm italic">One identity, endless casinos.</p>
         </div>
 
-        {/* Progress Bar (2 Steps) */}
         <div className="mb-8 flex justify-center items-center gap-16 px-4">
           {[1, 2].map((s) => (
             <div key={s} className="flex flex-col items-center relative z-10">
@@ -119,7 +113,6 @@ export default function PlayerRegistration() {
           ))}
         </div>
 
-        {/* Content Container */}
         <div className="bg-[#1a2c38]/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden min-h-[420px] flex flex-col">
           
           {step > 1 && (
@@ -227,7 +220,7 @@ export default function PlayerRegistration() {
                         </div>
                     </div>
 
-                    {/* Password Strength Meter */}
+                    {/* Password Strength*/}
                     {password && (
                         <div className="flex gap-1 mt-1 h-1 px-1">
                             {[1, 2, 3, 4].map((i) => (

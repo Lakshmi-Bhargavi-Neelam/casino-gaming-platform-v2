@@ -12,11 +12,7 @@ class GameService:
 
     @staticmethod
     def submit_game(db: Session, payload, provider_id: uuid.UUID):
-        """
-        Game provider submits a new game.
-        Includes engine configuration that builds the game logic.
-        """
-        # 1️⃣ Validate provider
+        #  Validate provider
         provider = db.query(GameProvider).filter(
             GameProvider.provider_id == provider_id,
             GameProvider.is_active.is_(True)
@@ -27,7 +23,7 @@ class GameService:
                 detail="Invalid or inactive game provider"
             )
 
-        # 2️⃣ Validate category
+        # Validate category
         category = db.query(GameCategory).filter(
             GameCategory.category_id == payload.category_id
         ).first()
@@ -37,7 +33,7 @@ class GameService:
                 detail="Invalid game category"
             )
 
-        # 3️⃣ Prevent duplicate game code globally
+        #Prevent duplicate game code globally
         existing_game = db.query(Game).filter(
             Game.game_code == payload.game_code
         ).first()
@@ -47,7 +43,7 @@ class GameService:
                 detail="Game code already exists"
             )
 
-        # 4️⃣ Create game with Engine Configuration
+        # Create game with Engine Configuration
         game = Game(
             provider_id=provider_id,
             category_id=payload.category_id,

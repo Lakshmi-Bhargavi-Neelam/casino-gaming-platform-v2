@@ -13,7 +13,7 @@ export default function CrashGame({ gameId, optIn, tenantId }) {
   const [targetMultiplier, setTargetMultiplier] = useState(2.0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentMultiplier, setCurrentMultiplier] = useState(1.0);
-  const [gameState, setGameState] = useState('idle'); // 'idle', 'running', 'crashed', 'win'
+  const [gameState, setGameState] = useState('idle'); 
   const [lastResult, setLastResult] = useState(null);
 
   const timerRef = useRef(null);
@@ -29,10 +29,10 @@ export default function CrashGame({ gameId, optIn, tenantId }) {
     try {
       const res = await api.post('/gameplay/play', {
         game_id: gameId,
-        tenant_id: tenantId, // 👈 Required by backend now
+        tenant_id: tenantId, 
         bet_amount: betAmount,
         target_multiplier: targetMultiplier,
-        opt_in: optIn // <--- THIS IS THE KEY
+        opt_in: optIn 
 
       });
 
@@ -40,7 +40,7 @@ export default function CrashGame({ gameId, optIn, tenantId }) {
       const crashAt = game_data.crash_at;
 
       // Animation Logic
-      const duration = 2000; // Total animation time in ms
+      const duration = 2000; 
       const startTime = Date.now();
 
       timerRef.current = setInterval(() => {
@@ -93,7 +93,7 @@ export default function CrashGame({ gameId, optIn, tenantId }) {
           gameState === 'win' ? 'bg-emerald-500/5 border-emerald-500/20' : 
           'bg-slate-900 border-slate-800'}`}
       >
-        {/* Animated Background Grid */}
+        {/* Background Grid */}
         <div className="absolute inset-0 opacity-10" 
              style={{ backgroundImage: 'linear-gradient(#4f46e5 1px, transparent 1px), linear-gradient(90deg, #4f46e5 1px, transparent 1px)', backgroundSize: '40px 40px' }} 
         />

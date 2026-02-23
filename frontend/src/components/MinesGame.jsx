@@ -14,7 +14,7 @@ export default function MinesGame({ gameId, optIn, tenantId }) {
   const [mineCount, setMineCount] = useState(3);
   
   // Game State
-  const [grid, setGrid] = useState(Array(25).fill(null)); // null, 'gem', 'mine'
+  const [grid, setGrid] = useState(Array(25).fill(null));
   const [isGameActive, setIsGameActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [successfulPicks, setSuccessfulPicks] = useState(0);
@@ -44,7 +44,7 @@ export default function MinesGame({ gameId, optIn, tenantId }) {
 const handleStartGame = () => {
     if (balance < betAmount) return toast.error("Insufficient balance");
     
-    // 🎯 FIX: Visually deduct money immediately (Optimistic Update)
+    // Visually deduct money immediately (Optimistic Update)
     // This makes the UI feel responsive, even though the API call happens later
     updateBalance(balance - betAmount);
 
@@ -61,7 +61,7 @@ const handleStartGame = () => {
     toast.error("BOOM! You hit a mine.");
 
     try {
-      // 🎯 Call API to process the LOSS (Debit money, Credit 0)
+      //  Call API to process the LOSS (Debit money, Credit 0)
       const res = await api.post('/gameplay/play', {
         game_id: gameId,
         tenant_id: tenantId,
@@ -84,10 +84,10 @@ const handleStartGame = () => {
     try {
       const res = await api.post('/gameplay/play', {
         game_id: gameId,
-        tenant_id: tenantId, // 👈 Required by backend now
+        tenant_id: tenantId, 
         bet_amount: betAmount,
-        successful_picks: successfulPicks, // 🎯 Backend uses this for payout
-        opt_in: optIn // <--- THIS IS THE KEY
+        successful_picks: successfulPicks, 
+        opt_in: optIn 
 
       });
 

@@ -85,14 +85,14 @@ export default function KYCUploadPanel() {
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
       
-      {/* 🚩 Global Status Banner: High Fidelity */}
+      {/* Global Status Banner */}
       <div className={`relative overflow-hidden p-6 rounded-[2rem] border transition-all duration-500 flex flex-col md:flex-row items-center gap-6 shadow-2xl ${
         kycData.user_status === 'verified' ? 'bg-emerald-500/10 border-emerald-500/30' :
         kycData.user_status === 'rejected' ? 'bg-red-500/10 border-red-500/30' :
         kycData.user_status === 'submitted' ? 'bg-blue-500/10 border-blue-500/30' :
         'bg-amber-500/10 border-amber-500/30'
       }`}>
-        {/* Background Status Icon (Watermark) */}
+        {/* Background Status Icon*/}
         <div className="absolute -right-6 -bottom-6 opacity-5">
             {kycData.user_status === 'verified' ? <ShieldCheck size={160} /> : <ShieldAlert size={160} />}
         </div>
@@ -132,7 +132,7 @@ export default function KYCUploadPanel() {
         )}
       </div>
 
-      {/* 2. Document Grid: Glass Cards */}
+      {/* 2. Document Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
         {docConfig.map((type, index) => {
           const existingDoc = kycData.documents.find(d => d.type === type.id);
@@ -165,7 +165,7 @@ export default function KYCUploadPanel() {
                 )}
               </div>
 
-              {/* 3. Action Button: The Signature Gradient */}
+              {/* 3. Action Button*/}
               <label className={`relative group/btn flex items-center justify-center gap-3 w-full py-4 rounded-2xl transition-all duration-300 font-black text-xs uppercase tracking-widest overflow-hidden ${
                   existingDoc?.status === 'verified' || existingDoc?.status === 'submitted' || existingDoc?.status === 're-submitted'
                   ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
@@ -185,7 +185,7 @@ export default function KYCUploadPanel() {
                   <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, type.id)} />
                 )}
                 
-                {/* Visual Glow for Active Buttons */}
+    
                 {!(existingDoc?.status === 'verified' || existingDoc?.status === 'submitted' || existingDoc?.status === 're-submitted') && (
                     <div className="absolute inset-0 bg-white/10 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
                 )}

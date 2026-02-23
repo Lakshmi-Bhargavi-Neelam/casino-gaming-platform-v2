@@ -29,7 +29,7 @@ class TenantService:
         payload: TenantCreate
     ) -> Tenant:
 
-        # 1️⃣ Validate countries
+        # Validate countries
         countries = (
             db.query(Country)
             .filter(Country.country_code.in_(payload.allowed_countries))
@@ -42,7 +42,7 @@ class TenantService:
                 detail="One or more country codes are invalid"
             )
 
-        # 2️⃣ Create tenant
+        #  Create tenant
         tenant = Tenant(
             tenant_name=payload.tenant_name,
             domain=payload.domain,
@@ -50,9 +50,9 @@ class TenantService:
         )
 
         db.add(tenant)
-        db.flush()  # get tenant_id
+        db.flush() 
 
-        # 3️⃣ Insert tenant_countries
+        # Insert tenant_countries
         tenant_country_rows = [
             TenantCountry(
                 tenant_id=tenant.tenant_id,

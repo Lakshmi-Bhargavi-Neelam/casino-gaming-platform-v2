@@ -26,7 +26,6 @@ export default function BonusManagement() {
     }
   });
 
-  // 🎯 Watch the bonus type to change the UI dynamically
   const bonusType = watch("bonus_type");
 
   const onSubmit = async (data) => {
@@ -59,7 +58,6 @@ export default function BonusManagement() {
       toast.success("Promotion successfully deployed!");
       reset();
     } catch (err) {
-      // 3. 🎯 CRASH FIX: Extract readable message from FastAPI's complex 422 error object
       const detail = err.response?.data?.detail;
       
       if (Array.isArray(detail)) {
@@ -127,7 +125,6 @@ export default function BonusManagement() {
             </div>
           </div>
 
-          {/* DYNAMIC LOGIC SECTION */}
           <div className="relative min-h-[80px]">
             {bonusType === 'DEPOSIT' ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in slide-in-from-top-4 fade-in duration-500">

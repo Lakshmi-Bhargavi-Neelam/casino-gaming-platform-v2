@@ -30,13 +30,13 @@ export default function WalletPage() {
     try {
       const endpoint = type === 'deposit' ? '/payments/deposit' : '/payments/withdraw';
       
-      // 🎯 1. Define the payload correctly
+      // 1. Define the payload correctly
       const payload = { 
         amount: parseFloat(amount),
         tenant_id: activeTenantId 
       };
 
-      // 🎯 2. FIX: You must pass the 'payload' variable here!
+      // 2. FIX: You must pass the 'payload' variable here!
       const response = await api.post(endpoint, payload);
       
       toast.success(response.data.message);
@@ -47,7 +47,7 @@ export default function WalletPage() {
       
       setAmount('');
     } catch (err) {
-      // 🎯 3. FIX: Crash-proof error handling for validation objects
+      // 3. Crash-proof error handling for validation objects
       const detail = err.response?.data?.detail;
       
       if (Array.isArray(detail)) {
@@ -68,7 +68,7 @@ export default function WalletPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
       
-      {/* --- 💳 PREMIUM BALANCE CARD --- */}
+      {/* ---  BALANCE CARD --- */}
       <div className="relative group overflow-hidden bg-slate-900 border border-slate-800 rounded-[2.5rem] p-10 shadow-2xl">
         {/* Background Ambient Glow */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-[100px] -z-10 group-hover:bg-teal-500/20 transition-all duration-700" />
@@ -162,7 +162,6 @@ export default function WalletPage() {
           </div>
         </div>
 
-        {/* Right: Security & Methods */}
         <div className="space-y-6">
           <div className="bg-slate-900/50 border border-slate-700/50 p-8 rounded-[2.5rem] space-y-6 shadow-2xl">
             <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-teal-500 flex items-center gap-2">

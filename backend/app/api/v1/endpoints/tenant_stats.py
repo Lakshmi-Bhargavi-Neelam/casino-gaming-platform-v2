@@ -14,9 +14,8 @@ def get_tenant_stats(
     db: Session = Depends(get_db),
     current_user = Depends(require_tenant_admin)
 ):
-    # 🔒 KYC Enforcement
+ 
     enforce_kyc_verified(current_user)
-    # ⚡ For now return dummy data
     return {
         "active_games": 5,
         "total_players": 120,

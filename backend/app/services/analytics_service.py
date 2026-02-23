@@ -13,7 +13,7 @@ from app.models.tenant import Tenant
 class AnalyticsService:
 
     # ─────────────────────────────────────
-    # 🎯 BET / GAMEPLAY ANALYTICS
+    # BET / GAMEPLAY ANALYTICS
     # ─────────────────────────────────────
     @staticmethod
     def update_bet_stats(
@@ -34,7 +34,7 @@ class AnalyticsService:
         win_inc = 1 if win_dec > 0 else 0
         loss_inc = 1 if win_dec == 0 else 0
 
-        # ✅ Game-level snapshot
+        # Game-level snapshot
         stmt = insert(AnalyticsSnapshot).values(
             snapshot_date=today,
             tenant_id=tenant_id,
@@ -55,7 +55,7 @@ class AnalyticsService:
 
         db.execute(stmt)
 
-        # ✅ Player lifetime stats
+        # Player lifetime stats
         player_stmt = insert(PlayerStatsSummary).values(
             player_id=player_id,
             total_wagered=bet_dec,
@@ -82,7 +82,7 @@ class AnalyticsService:
         db.execute(player_stmt)
 
     # ─────────────────────────────────────
-    # 🎯 FINANCIAL ANALYTICS
+    #  FINANCIAL ANALYTICS
     # ─────────────────────────────────────
     @staticmethod
     def update_financial_stats(
@@ -97,7 +97,6 @@ class AnalyticsService:
 
         col = "total_deposits" if type == "deposit" else "total_withdrawals"
 
-        # ✅ Tenant-level snapshot (NO game_id)
         stmt = insert(AnalyticsSnapshot).values(
             snapshot_date=today,
             tenant_id=tenant_id,
@@ -112,7 +111,7 @@ class AnalyticsService:
 
         db.execute(stmt)
 
-        # ✅ Player lifetime deposits
+        # Player lifetime deposits
         if type == "deposit":
             p_stmt = insert(PlayerStatsSummary).values(
                 player_id=player_id,
@@ -128,7 +127,7 @@ class AnalyticsService:
             db.execute(p_stmt)
 
     # ─────────────────────────────────────
-    # 🎯 BONUS ANALYTICS
+    # BONUS ANALYTICS
     # ─────────────────────────────────────
     @staticmethod
     def update_bonus_analytics(
@@ -161,7 +160,7 @@ class AnalyticsService:
         db.execute(stmt)
 
     # ─────────────────────────────────────
-    # 🎯 DASHBOARD AGGREGATIONS
+    #  DASHBOARD AGGREGATIONS
     # ─────────────────────────────────────
     @staticmethod
     def get_global_platform_stats(db: Session):

@@ -14,12 +14,12 @@ class GameProviderService:
 
     @staticmethod
     def create_provider(db: Session, payload):
-        # 1️⃣ Strict Domain Validation
+        #  Strict Domain Validation
         PlayerService.validate_email_domain(payload.email)
 
         existing_user = db.query(User).filter(
             User.email == payload.email,
-            User.tenant_id == None  # This specifically looks for tenant_id IS NULL
+            User.tenant_id == None  
         ).first()        
         if existing_user:
             raise HTTPException(400, "Email already registered")
@@ -32,7 +32,7 @@ class GameProviderService:
             email=payload.email,
             password_hash=get_password_hash(payload.password),
             role_id=role.role_id,
-            tenant_id=None, # 🎯 Explicitly NULL
+            tenant_id=None,
             status="active"
         )
 

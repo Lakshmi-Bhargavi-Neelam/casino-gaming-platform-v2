@@ -9,7 +9,7 @@ from app.models.game_provider import GameProvider
 
 class TenantGameService:
 
-    # 🎯 Marketplace listing
+    # Marketplace listing
     @staticmethod
     def list_available_market_games(db: Session, tenant_id):
         games = (
@@ -43,7 +43,7 @@ class TenantGameService:
 
         return result
 
-    # ✅ Enable Game
+    # Enable Game
     @staticmethod
     def enable_game(db: Session, tenant_id, game_id):
         game = db.query(Game).filter_by(
@@ -76,7 +76,7 @@ class TenantGameService:
         db.commit()
         return {"message": "Game enabled"}
 
-    # ❌ Disable Game
+    # Disable Game
     @staticmethod
     def disable_game(db: Session, tenant_id, game_id):
         tg = db.query(TenantGame).filter_by(
@@ -94,7 +94,7 @@ class TenantGameService:
         db.commit()
         return {"message": "Game disabled"}
 
-    # 🎛 Update overrides
+    # Update overrides
     @staticmethod
     def update_overrides(db: Session, tenant_id, game_id, min_bet, max_bet, rtp_override):
         tg = db.query(TenantGame).filter_by(
@@ -117,7 +117,7 @@ class TenantGameService:
 
         return {"message": "Overrides updated"}
 
-    # 📋 List enabled games for tenant
+    # List enabled games for tenant
     @staticmethod
     def list_enabled_games(db: Session, tenant_id):
         rows = (

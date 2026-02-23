@@ -33,7 +33,7 @@ export default function HistoryTable({ history }) {
 
 <td className="px-6 py-4">
   <div className="flex flex-wrap gap-1">
-    {/* 🎯 FIX: Specifically target the 'spin' property if it exists */}
+    {/* Specifically target the 'spin' property if it exists */}
     {item.result_data?.spin && Array.isArray(item.result_data.spin) ? (
       item.result_data.spin.map((symbol, idx) => (
         <span key={idx} className="bg-slate-800 px-1.5 py-0.5 rounded text-[10px] border border-slate-700 font-bold text-slate-300">
@@ -62,7 +62,6 @@ export default function HistoryTable({ history }) {
               </td>
 
               <td className="px-6 py-4 font-mono text-sm text-slate-300">
-                {/* 🎯 FIX: Display historical balance if available, else '---' */}
                 {item.balance_after !== null 
                   ? `$${parseFloat(item.balance_after).toLocaleString(undefined, { minimumFractionDigits: 2 })}` 
                   : '$---'}

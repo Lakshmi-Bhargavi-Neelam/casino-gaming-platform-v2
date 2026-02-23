@@ -12,27 +12,21 @@ from app.services.wallet_service import WalletService
 router = APIRouter(tags=["Tenants"])
 
 # --- NEW: List All Tenants ---
-# This endpoint is used by the Tenant Admin Registration form dropdown
 @router.get("", response_model=list[TenantResponse])
 def list_all_tenants(
     db: Session = Depends(get_db),
     current_user=Depends(require_super_admin)
 ):
-    """
-    Returns a list of all tenants. 
-    Protected so only Super Admins can see the full list.
-    """
+ 
     tenants = db.query(Tenant).all()
     
-    # We map them to TenantResponse to ensure the frontend gets 
-    # the tenant_id, name, and domain.
     return [
         TenantResponse(
             tenant_id=t.tenant_id,
             tenant_name=t.tenant_name,
             domain=t.domain,
             status=t.status,
-            allowed_countries=[] # Optional: populate if needed
+            allowed_countries=[] 
         ) for t in tenants
     ]
 
@@ -80,5 +74,4 @@ def enter_casino(
     db: Session = Depends(get_db), 
     user = Depends(get_current_user)
 ):
-    # 🎯 Lazy creation of wallets/profile
     return WalletService.init_tenant_profile(db, user.user_id, tenant_id)

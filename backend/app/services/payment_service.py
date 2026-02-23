@@ -10,9 +10,9 @@ from app.models.wallet_transaction import WalletTransaction
 from app.models.transaction_type import TransactionType
 from app.services.analytics_service import AnalyticsService
 
+
 class PaymentService:
 
-    # 🔹 Helper to fetch transaction type
     @staticmethod
     def get_txn_type(db: Session, code: str) -> int:
         txn_type = db.query(TransactionType).filter(
@@ -24,7 +24,6 @@ class PaymentService:
 
         return txn_type.transaction_type_id
 
-    # 💰 COMPLETE DEPOSIT (Gateway Success Callback)
     @staticmethod
     def complete_deposit(db: Session, deposit_id: uuid.UUID):
         try:
@@ -42,17 +41,14 @@ class PaymentService:
             if not wallet:
                 raise HTTPException(404, "Wallet not found")
 
-
-            # ─────────────────────────────
-            # 🎯 ANALYTICS: Track Deposit
-            # ─────────────────────────────
             AnalyticsService.update_financial_stats(
-                db, 
-                tenant_id=wallet.tenant_id, 
-                player_id=deposit.player_id, # 🎯 Pass player context
-                amount=float(deposit.amount), 
+                db,
+                tenant_id=wallet.tenant_id,
+                player_id=deposit.player_id,
+                amount=float(deposit.amount),
                 type="deposit"
             )
+
             balance_before = wallet.balance
             wallet.balance += deposit.amount
 
@@ -77,9 +73,14 @@ class PaymentService:
             db.rollback()
             raise e
 
-    # 💸 PLAYER REQUEST WITHDRAWAL
     @staticmethod
-    def request_withdrawal(db: Session, player_id: uuid.UUID, wallet_id: uuid.UUID, amount: float, tenant_id: uuid.UUID):
+    def request_withdrawal(
+        db: Session,
+        player_id: uuid.UUID,
+        wallet_id: uuid.UUID,
+        amount: float,
+        tenant_id: uuid.UUID
+    ):
         wallet = db.query(Wallet).filter(
             Wallet.wallet_id == wallet_id,
             Wallet.player_id == player_id
@@ -103,7 +104,6 @@ class PaymentService:
         db.commit()
         return withdrawal
 
-    # 🏦 ADMIN APPROVES WITHDRAWAL
     @staticmethod
     def approve_withdrawal(db: Session, withdrawal_id: uuid.UUID):
         try:
@@ -121,14 +121,11 @@ class PaymentService:
             if not wallet:
                 raise HTTPException(404, "Wallet not found")
 
-            # ─────────────────────────────
-            # 🎯 ANALYTICS: Track Withdrawal (Passing player_id)
-            # ─────────────────────────────
             AnalyticsService.update_financial_stats(
-                db, 
-                tenant_id=withdrawal.tenant_id, 
-                player_id=withdrawal.player_id, # 🎯 Pass player context
-                amount=float(withdrawal.amount), 
+                db,
+                tenant_id=withdrawal.tenant_id,
+                player_id=withdrawal.player_id,
+                amount=float(withdrawal.amount),
                 type="withdrawal"
             )
 
@@ -146,11 +143,11 @@ class PaymentService:
                 status="success"
             )
 
-            # ─────────────────────────────
-            # 🎯 ANALYTICS: Track Withdrawal
-            # ─────────────────────────────
             AnalyticsService.update_financial_stats(
-                db, wallet.tenant_id, float(withdrawal.amount), "withdrawal"
+                db,
+                wallet.tenant_id,
+                float(withdrawal.amount),
+                "withdrawal"
             )
 
             withdrawal.status = "approved"

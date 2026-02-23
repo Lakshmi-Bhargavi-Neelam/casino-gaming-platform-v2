@@ -5,12 +5,12 @@ from uuid import UUID
 from app.core.database import get_db
 from app.core.security import require_tenant_admin
 from app.core.kyc_guard import enforce_kyc_verified
+
 from app.services.tenant_game_service import TenantGameService
 
 router = APIRouter(tags=["Tenant Games"])
 
 
-# 🎯 Marketplace (All ACTIVE platform games + tenant status)
 @router.get("/marketplace")
 def get_marketplace_games(
     db: Session = Depends(get_db),
@@ -20,7 +20,6 @@ def get_marketplace_games(
     return TenantGameService.list_available_market_games(db, user.tenant_id)
 
 
-# 🔘 Enable / Disable Game
 @router.post("/toggle")
 def toggle_game(
     payload: dict = Body(...),
@@ -37,7 +36,6 @@ def toggle_game(
         return TenantGameService.disable_game(db, user.tenant_id, game_id)
 
 
-# 🎛 Update tenant overrides
 @router.patch("/{game_id}/override")
 def update_overrides(
     game_id: UUID,
@@ -57,7 +55,6 @@ def update_overrides(
         rtp_override
     )
 
-    # tenant_games.py
 
 @router.get("/enabled")
 def get_enabled_games(
@@ -65,4 +62,3 @@ def get_enabled_games(
     user=Depends(require_tenant_admin)
 ):
     return TenantGameService.list_enabled_games(db, user.tenant_id)
-

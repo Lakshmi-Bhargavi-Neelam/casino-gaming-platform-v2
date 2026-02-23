@@ -173,7 +173,7 @@ export default function MyGames() {
         </div>
       </div>
 
-      {/* 3. JSON CONFIG MODAL (Matching high-end theme) */}
+      {/* 3. JSON CONFIG MODAL */}
       {selectedConfig && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={() => setSelectedConfig(null)}></div>

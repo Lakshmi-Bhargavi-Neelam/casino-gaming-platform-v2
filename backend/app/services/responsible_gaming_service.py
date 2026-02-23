@@ -1,18 +1,3 @@
-# app/services/responsible_gaming_service.py
-"""
-Responsible Gaming Service
-
-Handles player-set limits for responsible gaming compliance:
-- Daily deposit limits
-- Daily loss limits
-- Session limits (3 hours max)
-- Daily wagering limits
-
-Rules:
-- Reductions apply immediately
-- Increases require 24-72 hour cooling period (configurable)
-- Limits are tenant-isolated (per casino)
-"""
 from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
@@ -31,17 +16,13 @@ from app.schemas.player_limit import (
 )
 
 
-# Configuration
-INCREASE_COOLDOWN_HOURS = 24  # Hours before limit increase takes effect
-SESSION_LIMIT_DEFAULT_MINUTES = 180  # 3 hours default session limit
+INCREASE_COOLDOWN_HOURS = 24 
+SESSION_LIMIT_DEFAULT_MINUTES = 180  
 
 
 class ResponsibleGamingService:
-    """Service for managing responsible gaming limits."""
 
-    # -----------------------------
-    # Set / Update Limit
-    # -----------------------------
+
     @staticmethod
     def set_limit(
         db: Session,
@@ -49,13 +30,7 @@ class ResponsibleGamingService:
         tenant_id: UUID,
         payload: PlayerLimitCreate
     ) -> PlayerLimit:
-        """
-        Set a responsible gaming limit.
-
-        - If no existing limit: Create new (active immediately)
-        - If new value < existing: Update immediately (reduction)
-        - If new value > existing: Create pending (24hr delay)
-        """
+        
         now = datetime.now()
 
         # Check for existing active or pending limit of same type
@@ -107,7 +82,7 @@ class ResponsibleGamingService:
                     current_usage=Decimal("0.00"),
                     effective_at=now + timedelta(hours=INCREASE_COOLDOWN_HOURS),
                     requested_at=now,
-                    period_start=None  # Not active yet
+                    period_start=None 
                 )
                 db.add(pending)
                 db.commit()
@@ -115,7 +90,7 @@ class ResponsibleGamingService:
                 return pending
 
             else:
-                # Same value - just return existing
+            
                 return existing
 
         # No existing limit - create new (active immediately)
@@ -240,11 +215,7 @@ class ResponsibleGamingService:
         amount: float,
         period: str = "DAILY"
     ) -> LimitCheckResponse:
-        """
-        Check if an action would exceed the player's limit.
-
-        Returns whether the action is within limit and remaining allowance.
-        """
+      
         limit = ResponsibleGamingService.get_limit_by_type(
             db, player_id, tenant_id, limit_type, period
         )
@@ -305,8 +276,7 @@ class ResponsibleGamingService:
         ).with_for_update().first()
 
         if not limit:
-            return True  # No limit, nothing to update
-
+            return True  
         # Check if period needs reset
         if limit.period_start:
             period_end = ResponsibleGamingService._get_period_end(limit.period_start, limit.period)

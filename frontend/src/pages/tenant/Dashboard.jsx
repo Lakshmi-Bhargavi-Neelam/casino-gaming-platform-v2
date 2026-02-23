@@ -23,13 +23,13 @@ import { toast } from 'react-hot-toast';
 export default function TenantDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  // 🎯 Switch State: 'analytics' or 'finance'
+  //  Switch State:'analytics' or 'finance'
   const [view, setView] = useState('analytics'); 
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // 🎯 We fetch both datasets to ensure smooth switching
+      //  We fetch both datasets to ensure smooth switching
       const [summaryRes, detailedRes] = await Promise.all([
         api.get('/tenant/analytics/dashboard-summary'),
         api.get('/tenant/analytics/detailed-stats')

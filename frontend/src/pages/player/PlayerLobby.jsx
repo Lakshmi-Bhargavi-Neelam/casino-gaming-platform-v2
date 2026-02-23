@@ -26,7 +26,7 @@ export default function PlayerLobby() {
 useEffect(() => {
   const fetchLobby = async () => {
     try {
-      // 🎯 FIX: Get the ID we saved when clicking "Enter Casino"
+      // Get the ID we saved when clicking "Enter Casino"
       const activeTenantId = localStorage.getItem('active_tenant_id');
       
       if (!activeTenantId) {
@@ -34,7 +34,7 @@ useEffect(() => {
         return;
       }
 
-      // 🎯 FIX: Send the tenant_id to the backend
+      // Send the tenant_id to the backend
       const response = await api.get(`/player/player/lobby-games?tenant_id=${activeTenantId}`); 
       setGames(response.data);
     } catch (error) {
@@ -63,7 +63,6 @@ useEffect(() => {
   return (
     <div className="space-y-12 pb-24 animate-in fade-in duration-1000">
       
-      {/* --- 🚀 CINEMATIC HERO SECTION --- */}
       <div className="relative overflow-hidden rounded-[3rem] bg-[#0f172a] border border-slate-800 shadow-2xl group">
         {/* Animated Background Gradients */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[120px] -z-10 group-hover:bg-teal-500/20 transition-all duration-700"></div>
@@ -112,7 +111,7 @@ useEffect(() => {
         </div>
       </div>
 
-     {/* --- 🔍 SMART SEARCH & FILTER BAR --- */}
+     {/* ---  SMART SEARCH & FILTER BAR --- */}
 {/* Fixed the top position and background to prevent messy overlaps on scroll */}
 <div className="sticky top-[0px] -mx-10 px-10 py-6 z-30 bg-[#070b14] border-b border-slate-800/50 shadow-2xl transition-all">
   <div className="flex flex-col xl:flex-row gap-6 items-center justify-between max-w-7xl mx-auto">
@@ -151,7 +150,7 @@ useEffect(() => {
   </div>
 </div>
 
-      {/* --- 🎮 GAMES GRID: High Energy Cards --- */}
+      {/* ---  GAMES GRID */}
       <section>
         <div className="flex items-center justify-between mb-10">
           <div className="flex items-center gap-4">
@@ -196,7 +195,7 @@ useEffect(() => {
                    {game.engine_type.split('_')[0]}
                 </span>
 
-                {/* Play Button Overlay: Glass Effect */}
+                {/* Play Button Overlay */}
                 <div className="absolute inset-0 bg-teal-950/40 opacity-0 group-hover:opacity-100 transition-all duration-500 backdrop-blur-[3px] flex items-center justify-center">
                   <div className="bg-white p-5 rounded-full shadow-[0_0_30px_rgba(255,255,255,0.4)] transform translate-y-8 group-hover:translate-y-0 transition-all duration-500 ease-out">
                     <Play fill="#0f172a" className="text-slate-900 ml-1" size={32} />

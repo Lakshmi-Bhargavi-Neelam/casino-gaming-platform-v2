@@ -1,19 +1,19 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import confetti from 'canvas-confetti'; // 🎯 Add this for win celebration
-import api from '../lib/axios'; // Adjust the path if your axios file is elsewhere
+import confetti from 'canvas-confetti'; 
+import api from '../lib/axios'; 
 import { useAuth } from '../context/AuthContext';
 
 export default function DiceGame({ gameId, optIn, tenantId }) {
   const { balance, updateBalance } = useAuth();
   const [betAmount, setBetAmount] = useState(10);
-  const [choice, setChoice] = useState('EVEN'); // 🎯 Specific to Dice
+  const [choice, setChoice] = useState('EVEN'); 
   const [rolling, setRolling] = useState(false);
   const [result, setResult] = useState(null);
   const [lastWin, setLastWin] = useState(0);
 
   const handleRoll = async () => {
-    if (rolling || balance < betAmount) return; // Prevent double clicks or broke rolls
+    if (rolling || balance < betAmount) return; 
     
     setRolling(true);
     setResult(null); // Clear previous result so animation feels fresh
@@ -22,24 +22,21 @@ export default function DiceGame({ gameId, optIn, tenantId }) {
     try {
       const res = await api.post('/gameplay/play', {
         game_id: gameId,
-        tenant_id: tenantId, // 👈 Required by backend now
+        tenant_id: tenantId,
         bet_amount: betAmount,
-        player_choice: choice, // 🎯 Correct: backend kwarg
-        opt_in: optIn // <--- THIS IS THE KEY
+        player_choice: choice, 
+        opt_in: optIn  
 
       });
-
-      // 🎯 Destructure correctly AFTER the API call
       const { game_data, win_amount, balance: newBalance } = res.data;
 
-      // Sync visual timing with the animation
       setTimeout(() => {
         setResult(game_data); 
-setLastWin(win_amount); // 🎯 Backend sends this as a float
+setLastWin(win_amount); 
 updateBalance(newBalance);
 setRolling(false);
 
-        // 🎇 Celebration Logic
+        // Celebration Logic
         if (win_amount > 0) {
           confetti({
             particleCount: 150,
@@ -105,7 +102,7 @@ setRolling(false);
 <div className="w-full lg:w-80 flex flex-col gap-4">
   <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 flex flex-col gap-6">
     
-    {/* 🎯 BET AMOUNT INPUT (Newly Added) */}
+    {/* BET AMOUNT INPUT */}
     <div className="space-y-2">
       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Bet Amount</label>
       <div className="relative">
@@ -134,7 +131,7 @@ setRolling(false);
       </div>
     </div>
 
-    {/* 🎯 CHOICE SELECTION (EVEN/ODD) */}
+    {/*CHOICE SELECTION (EVEN/ODD) */}
     <div className="space-y-2 pt-4 border-t border-slate-800">
       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pick One</label>
       <div className="grid grid-cols-2 gap-2 mt-2">
@@ -154,7 +151,7 @@ setRolling(false);
       </div>
     </div>
 
-    {/* 🎯 ROLL BUTTON */}
+    {/*  ROLL BUTTON */}
     <motion.button
       whileTap={{ scale: 0.98 }}
       onClick={handleRoll}

@@ -15,9 +15,8 @@ from app.services.analytics_service import AnalyticsService
 
 class BonusService:
 
-    # -----------------------------
     # Tenant Admin: Create Bonus
-    # -----------------------------
+
     @staticmethod
     def create_bonus(db: Session, tenant_id, payload: BonusCreate):
         bonus = Bonus(
@@ -38,9 +37,8 @@ class BonusService:
         db.refresh(bonus)
         return bonus
 
-    # -----------------------------
     # Eligibility Check
-    # -----------------------------
+
     @staticmethod
     def get_eligible_bonus(db: Session, tenant_id, player_id, deposit_amount):
         now = datetime.now()
@@ -69,9 +67,7 @@ class BonusService:
 
         return None
 
-    # -----------------------------
     # Grant Bonus
-    # -----------------------------
     @staticmethod
     def grant_bonus(
         db: Session,
@@ -79,23 +75,19 @@ class BonusService:
         player_id: UUID,
         deposit_amount: float = 0
     ):
-        # 1. Convert float to Decimal for safe math
+     
         deposit_dec = Decimal(str(deposit_amount))
 
-        # 2. Calculate bonus amount
         if bonus.bonus_type == "DEPOSIT":
             calculated_amount = (deposit_dec * bonus.bonus_percentage) / Decimal("100")
             bonus_amount = min(calculated_amount, bonus.max_bonus_amount)
         else:
             bonus_amount = bonus.bonus_amount
 
-        # 3. Calculate wagering requirement
         wagering_required = bonus_amount * bonus.wagering_multiplier
 
-        # 4. Fetch BONUS wallet
         bonus_wallet = WalletService.get_wallet(db, player_id, "BONUS", bonus.tenant_id)
 
-        # 5. Create bonus usage instance
         usage = BonusUsage(
             bonus_id=bonus.bonus_id,
             player_id=player_id,
@@ -106,17 +98,16 @@ class BonusService:
             status="active"
         )
 
-        # ─────────────────────────────
-        # 🎯 ANALYTICS: Track Bonus Issued
-        # ─────────────────────────────
+        # ANALYTICS: Track Bonus Issued
+      
         AnalyticsService.update_bonus_analytics(
             db, bonus.tenant_id, float(bonus_amount), "issued"
         )
 
         db.add(usage)
-        db.flush()  # ensures bonus_usage_id is generated
+        db.flush() 
 
-        # 6. Credit BONUS wallet
+        # Credit BONUS wallet
         WalletService.apply_transaction(
             db=db,
             wallet=bonus_wallet,
@@ -128,10 +119,8 @@ class BonusService:
 
         db.commit()
         return usage
-
-    # -----------------------------
     # Apply Wagering (on every bet)
-    # -----------------------------
+  
     @staticmethod
     def apply_wagering(db: Session, player_id, bet_amount, tenant_id: UUID):
         bet_amount = Decimal(str(bet_amount))
@@ -143,8 +132,8 @@ class BonusService:
     ).filter(
             BonusUsage.player_id == player_id,
             BonusUsage.status == "active",
-            Bonus.tenant_id == tenant_id, # 👈 ISOLATION LAYER
-            Bonus.valid_to > now  # 👈 Block wagering if template expired
+            Bonus.tenant_id == tenant_id, 
+            Bonus.valid_to > now 
 
         ).all()
 
@@ -153,21 +142,13 @@ class BonusService:
 
             if usage.wagering_completed >= usage.wagering_required:
                 usage.status = "eligible"
-
-        # db.commit()
-
-    # -----------------------------
     # Player-triggered Conversion
-    # -----------------------------
+
     @staticmethod
     def convert_bonus_to_cash(db: Session, bonus_usage, player_id):
         tenant_id = bonus_usage.bonus.tenant_id 
-
-        # now = datetime.utcnow()
         now = datetime.now()
-        
-
-         # 🎯 FIX: Block conversion if the template has expired
+     
         if bonus_usage.bonus.valid_to < now:
             bonus_usage.status = "expired"
             db.commit()
@@ -207,10 +188,8 @@ class BonusService:
             ref_type="bonus_conversion",
             ref_id=bonus_usage.bonus_usage_id
         )
-
-        # ─────────────────────────────
-        # 🎯 ANALYTICS: Track Bonus Converted
-        # ─────────────────────────────
+        # ANALYTICS: Track Bonus Converted
+    
         AnalyticsService.update_bonus_analytics(
             db, tenant_id, float(bonus_amount), "converted"
         )
@@ -224,10 +203,7 @@ class BonusService:
             "message": "Bonus successfully converted to cash",
             "cash_balance": float(cash_wallet.balance)
         }
-
-    # -----------------------------
     # Helper Wrappers
-    # -----------------------------
     @staticmethod
     def get_eligible_deposit_bonus(db, tenant_id, player_id, deposit_amount):
         return BonusService.get_eligible_bonus(

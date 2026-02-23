@@ -4,7 +4,7 @@ import { Eye, ShieldCheck, Users, Briefcase, Search, AlertCircle, UserCheck } fr
 import ReviewModal from './ReviewModal'; 
 
 export default function KYCRequests() {
-  // 🎯 Default remains tenant_admin, but now we support 'player'
+  //  Default remains tenant_admin, but now we support 'player'
   const [activeTab, setActiveTab] = useState('tenant_admin');
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -12,7 +12,7 @@ export default function KYCRequests() {
 
   const fetchRequests = () => {
     setLoading(true);
-    // 🎯 The backend now handles role_name="player"
+    //  The backend now handles role_name="player"
     api.get(`/admin/kyc/pending-requests?role_name=${activeTab}`)
       .then(res => {
         setRequests(res.data);
@@ -52,7 +52,7 @@ export default function KYCRequests() {
       {/* 2. Main Card Container */}
       <div className="bg-slate-800/50 backdrop-blur-md rounded-[2rem] shadow-2xl border border-slate-700/50 overflow-hidden transition-all duration-300">
         
-        {/* 🎯 Tabs Section: Updated to include 3 options */}
+        {/*  Tabs Section: Updated to include 3 options */}
         <div className="flex px-4 pt-4 bg-slate-900/40 border-b border-slate-700/50 gap-2">
           <TabButton 
             active={activeTab === 'tenant_admin'} 

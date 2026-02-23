@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
-import JackpotCard from '../../components/jackpots/JackpotCard';
 import ContributeModal from '../../components/jackpots/ContributeModal';
 
 export default function JackpotHub() {
@@ -20,14 +19,14 @@ export default function JackpotHub() {
   const [selectedJackpot, setSelectedJackpot] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 🎯 Get active context from Auth
+  //  Get active context from Auth
   const { activeTenantId, updateBalance } = useAuth();
 
   const fetchData = useCallback(async () => {
     if (!activeTenantId) return;
     
     try {
-      // 🎯 Pass tenant_id to isolate prizes to the current casino floor
+      //  Pass tenant_id to isolate prizes to the current casino floor
       const [jackpotRes, historyRes] = await Promise.all([
         api.get(`/player/jackpots/active?tenant_id=${activeTenantId}`),
         api.get(`/player/jackpots/history?tenant_id=${activeTenantId}`)
@@ -53,7 +52,7 @@ export default function JackpotHub() {
   const handleConfirmContribution = async (amount) => {
     setContributing(true);
     try {
-      // 🎯 Send contribution with tenant context
+      //  Send contribution with tenant context
       await api.post(`/player/jackpots/${selectedJackpot.jackpot_id}/contribute?tenant_id=${activeTenantId}`, { 
         amount: parseFloat(amount) 
       });
@@ -150,7 +149,7 @@ export default function JackpotHub() {
         </div>
       )}
 
-      {/* --- 🎯 CHAMPIONS GALLERY SECTION (Win History) --- */}
+      {/* ---  CHAMPIONS GALLERY SECTION (Win History) --- */}
       <section className="mt-20 space-y-8 animate-in slide-in-from-bottom-10 duration-1000">
         <div className="flex items-center gap-4 px-4">
            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-800 to-transparent" />
@@ -211,7 +210,7 @@ export default function JackpotHub() {
         </div>
       </section>
 
-            {/* 🎯 THE CONTRIBUTION MODAL */}
+            {/*  THE CONTRIBUTION MODAL */}
       <ContributeModal 
         jackpot={selectedJackpot}
         isOpen={isModalOpen}

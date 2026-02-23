@@ -22,7 +22,7 @@ export default function History() {
   });  
   const [loading, setLoading] = useState(true);
   
-  // 🎯 Filter States
+  //  Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGame, setFilterGame] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all'); // all | wins | losses
@@ -43,12 +43,12 @@ export default function History() {
     }
   };
 
-  // 🎯 RE-FETCH data whenever game or status changes
+  // RE-FETCH data whenever game or status changes
   useEffect(() => { 
     fetchDashboard(); 
   }, [filterGame, filterStatus]); 
 
-  // 🎯 REFINED FILTER LOGIC (Case-Insensitive & Type-Safe)
+  //  REFINED FILTER LOGIC (Case-Insensitive & Type-Safe)
   const filteredHistory = useMemo(() => {
     return data.history.filter(item => {
       // 1. Search Filter
@@ -85,7 +85,7 @@ export default function History() {
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
       
-      {/* 🚀 PAGE HEADER */}
+      {/*  PAGE HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3 italic uppercase">
@@ -104,7 +104,7 @@ export default function History() {
         </button>
       </div>
 
-      {/* 📊 ANALYTICS STATS */}
+      {/* ANALYTICS STATS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Total Wagered" value={data.summary.wagered} icon={<Zap size={20} className="text-indigo-400" />} accent="indigo" />
         <StatCard title="Total Payout" value={data.summary.won} icon={<Trophy size={20} className="text-amber-500" />} accent="amber" />
@@ -112,13 +112,13 @@ export default function History() {
         <StatCard title="Session Peak" value={data.summary.max_win} icon={<Target size={20} className="text-teal-400" />} accent="teal" />
       </div>
 
-      {/* 📑 ACTIVITY LOGS SECTION */}
+      {/*  ACTIVITY LOGS SECTION */}
       <div className="relative">
           <div className="absolute inset-0 bg-teal-500/5 blur-[100px] -z-10 rounded-[3rem]" />
           
           <div className="bg-slate-900/40 backdrop-blur-xl rounded-[2.5rem] border border-slate-800/50 overflow-hidden shadow-2xl">
             
-            {/* 🎯 INTEGRATED FILTER HEADER */}
+            {/*  INTEGRATED FILTER HEADER */}
             <div className="px-8 py-6 border-b border-slate-800 flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-slate-900/60">
                 <div className="flex items-center gap-4">
                    <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
@@ -129,7 +129,7 @@ export default function History() {
                    </span>
                 </div>
 
-                {/* 🔍 COMPACT FILTER CONSOLE INSIDE HEADER */}
+                {/*  COMPACT FILTER CONSOLE INSIDE HEADER */}
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Search */}
                   <div className="relative group min-w-[180px]">

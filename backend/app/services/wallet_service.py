@@ -183,7 +183,7 @@ class WalletService:
         }
 
     # ─────────────────────────────
-    # ✅ Properly inside class
+    # Properly inside class
     # ─────────────────────────────
 
     @staticmethod

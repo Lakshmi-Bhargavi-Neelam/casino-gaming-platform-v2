@@ -1,19 +1,17 @@
-# app/api/v1/endpoints/kyc_common.py
-
 import os
 import shutil
 from fastapi import APIRouter, Depends, HTTPException, Form, File, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.security import get_db, get_current_user
+
 from app.models.user import User
 from app.models.kyc_document import KYCDocument
 from app.models.role import Role
+
 from app.services.kyc_engine import recalculate_user_kyc_status, ROLE_REQUIREMENTS
 
-
 router = APIRouter(tags=["KYC Common"])
-
 
 @router.post("/submit-document")
 async def submit_document(
@@ -32,7 +30,6 @@ async def submit_document(
     with open(file_location, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # 🔎 Version & Status handling
     previous_active_doc = db.query(KYCDocument).filter(
         KYCDocument.user_id == user.user_id,
         KYCDocument.document_type == document_type,
@@ -40,7 +37,7 @@ async def submit_document(
     ).first()
 
     # Determine status
-    # CASE 3 — Re-upload After Rejection
+    # Re-upload After Rejection
     if previous_active_doc and previous_active_doc.verification_status == "rejected":
         status = "re-submitted"
     else:
@@ -71,7 +68,7 @@ async def submit_document(
         is_active=True
     ))
 
-    # 🔄 Recalculate global status
+    # Recalculate global status
     user_obj = db.query(User).filter(User.user_id == user.user_id).first()
     recalculate_user_kyc_status(user_obj, db)
 
@@ -87,7 +84,7 @@ def get_my_kyc_status(
 ):
     documents = db.query(KYCDocument).filter(
         KYCDocument.user_id == user.user_id,
-        KYCDocument.is_active == True  # 👈 Only current version
+        KYCDocument.is_active == True  
     ).all()
 
     return {

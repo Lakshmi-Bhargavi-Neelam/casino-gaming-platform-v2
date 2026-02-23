@@ -135,7 +135,7 @@ export default function TransactionsPage() {
                     </td>
                     <td className="px-8 py-6 font-mono text-sm text-slate-400">${tx.after.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     
-                    {/* 🎯 THE FIXED TIME COLUMN */}
+                    {/* THE FIXED TIME COLUMN */}
                     <td className="px-8 py-6">
                        <div className="text-xs font-bold text-slate-300">
                           {new Date(tx.date + "Z").toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}

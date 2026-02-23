@@ -21,14 +21,14 @@ export default function Login() {
     try {
       const response = await api.post('/auth/login', data);
       
-      // 🎯 Case A: Multi-tenant user needs to choose
+      //  Case A: Multi-tenant user needs to choose
       if (response.data.require_tenant_selection) {
         setAvailableTenants(response.data.tenants);
         setTempCredentials(data); // Save email/pass to resend with tenant_id
         setStep(2);
         toast('Please select a casino to enter', { icon: '🎰' });
       } 
-      // 🎯 Case B: Direct login (Single tenant or SuperAdmin)
+      //  Case B: Direct login (Single tenant or SuperAdmin)
       else {
         toast.success('Welcome back!');
         login(response.data.access_token);

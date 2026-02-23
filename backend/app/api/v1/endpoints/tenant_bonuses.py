@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime
+
 from app.core.database import get_db
 from app.core.security import require_tenant_admin
-from app.services.bonus_service import BonusService
-from app.schemas.bonus import BonusCreate   # <-- THIS IS MISSING
-from app.models.bonus import Bonus
 
+from app.models.bonus import Bonus
+from app.schemas.bonus import BonusCreate
+from app.services.bonus_service import BonusService
 
 router = APIRouter(
     prefix="/tenant/bonuses",
@@ -21,7 +22,6 @@ def create_bonus(
 ):
     return BonusService.create_bonus(db, user.tenant_id, payload)
 
-# app/api/v1/endpoints/tenant_bonuses.py (or similar)
 
 @router.get("", summary="List all bonuses for this tenant")
 def list_tenant_bonuses(
@@ -31,7 +31,6 @@ def list_tenant_bonuses(
     now = datetime.utcnow()
     bonuses = db.query(Bonus).filter(Bonus.tenant_id == user.tenant_id).all()
     
-    # 🎯 FIX: Return a computed status for the frontend
     result = []
     for b in bonuses:
         status = "LIVE"
@@ -51,7 +50,6 @@ def list_tenant_bonuses(
             "wagering_multiplier": b.wagering_multiplier,
             "valid_to": b.valid_to,
             "is_active": b.is_active,
-            "computed_status": status # 👈 Send this to the UI
+            "computed_status": status
         })
     return result
-

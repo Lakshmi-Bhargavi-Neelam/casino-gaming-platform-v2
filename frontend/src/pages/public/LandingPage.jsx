@@ -54,8 +54,6 @@ export default function LandingPage() {
       
       <Navbar />
 
-{/* --- HERO SECTION --- */}
-      {/* UPDATE: Removed 'pt-20' so the image goes behind the navbar */}
       <section className="relative h-[600px] lg:h-[700px] overflow-hidden">
         <Swiper
           modules={[Autoplay, EffectFade, Pagination]}
@@ -74,7 +72,6 @@ export default function LandingPage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-[#0B0F1A] via-[#0B0F1A]/70 to-transparent"></div>
                 
                 {/* Content */}
-                {/* UPDATE: Added 'pt-32' here to push text down since we removed padding from parent */}
                 <div className="relative z-10 max-w-7xl mx-auto px-6 w-full pt-32">
                   <span className="text-emerald-400 font-bold tracking-widest uppercase mb-4 block animate-fade-in-up">
                     Welcome to CasinoX

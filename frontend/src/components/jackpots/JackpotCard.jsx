@@ -4,8 +4,7 @@ import { Zap, Clock, Trophy, Lock, TimerOff } from 'lucide-react';
 export default function JackpotCard({ jackpot, onAction, index }) {
   const isSponsored = jackpot.jackpot_type === 'SPONSORED';
   
-  // 🎯 LOGIC: Check if current time is past the deadline
-  // We use new Date() to get the browser's current local time
+  //  Check if current time is past the deadline
   const isExpired = isSponsored && jackpot.deadline && new Date() > new Date(jackpot.deadline);
 
   return (

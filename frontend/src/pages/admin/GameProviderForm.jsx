@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/axios';
 
-// 🎯 New logic: Matches the strict constraints in your backend service
+//  New logic: Matches the strict constraints in your backend service
 const ALLOWED_DOMAINS = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"];
 
 export default function GameProviderForm() {
@@ -23,7 +23,7 @@ export default function GameProviderForm() {
       toast.success(`Provider "${data.provider_name}" registered!`);
       reset();
     } catch (error) {
-      // 🎯 Handle the backend validation error specifically
+      //  Handle the backend validation error specifically
       const detail = error.response?.data?.detail;
       const msg = Array.isArray(detail) ? detail[0]?.msg : (detail || 'Failed to register provider');
       toast.error(msg);
@@ -96,7 +96,7 @@ export default function GameProviderForm() {
             </div>
           </div>
 
-          {/* Contact Email - 🎯 LOGIC UPDATED HERE */}
+          {/* Contact Email -  LOGIC UPDATED HERE */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
               Contact Email Address
@@ -109,7 +109,7 @@ export default function GameProviderForm() {
                 {...register('email', { 
                     required: 'Email is required',
                     pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' },
-                    // 🎯 Frontend check to match backend validate_email_domain
+                    //  Frontend check to match backend validate_email_domain
                     validate: value => {
                       const domain = value.split('@')[1]?.toLowerCase();
                       return ALLOWED_DOMAINS.includes(domain) || `Must be a reputable provider (${ALLOWED_DOMAINS.join(', ')})`;

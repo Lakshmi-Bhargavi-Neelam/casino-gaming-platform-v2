@@ -10,7 +10,7 @@ import { toast } from 'react-hot-toast';
 
 export default function JackpotRegistry() {
   const [jackpots, setJackpots] = useState([]);
-  const [payouts, setPayouts] = useState([]); // 🎯 New state for winners
+  const [payouts, setPayouts] = useState([]); 
   const [loading, setLoading] = useState(true);
 
   const fetchRegistry = async () => {
@@ -22,7 +22,7 @@ export default function JackpotRegistry() {
 
   const fetchWins = async () => {
     try {
-      // 🎯 Fetching from the new wins endpoint
+      // Fetching from the new wins endpoint
       const res = await api.get('/tenant/jackpots/wins');
       setPayouts(res.data);
     } catch (err) {
@@ -57,7 +57,7 @@ export default function JackpotRegistry() {
   return (
     <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
       
-      {/* 📊 SUMMARY HUD */}
+      {/*  SUMMARY HUD */}
       <header className="flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
           <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-4 italic uppercase">
@@ -70,7 +70,7 @@ export default function JackpotRegistry() {
         </div>
       </header>
 
-      {/* 🏦 LIVE POOLS GRID */}
+      {/*  LIVE POOLS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {jackpots.filter(j => j.status === 'ACTIVE').map((jp, index) => (
           <div key={jp.jackpot_id} className="bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
@@ -107,7 +107,7 @@ export default function JackpotRegistry() {
         ))}
       </div>
 
-      {/* 🏆 WINNERS LOG */}
+      {/*  WINNERS LOG */}
       <div className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-[2.5rem] overflow-hidden shadow-2xl">
          <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-900/40">
             <h2 className="text-lg font-black text-white uppercase tracking-widest flex items-center gap-2">

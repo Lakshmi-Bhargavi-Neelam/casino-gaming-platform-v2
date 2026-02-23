@@ -74,12 +74,11 @@ export default function ProviderKYC() {
 
       {/* 3. Main KYC Repository Container */}
       <div className="relative">
-        {/* Subtle Background Glow */}
+     
         <div className="absolute inset-0 bg-indigo-500/5 blur-[120px] -z-10 rounded-[3rem]" />
         
         <div className="bg-slate-800/40 backdrop-blur-xl rounded-[2.5rem] border border-slate-700/50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden">
           
-          {/* Header Bar inside the container */}
           <div className="p-8 pb-0 border-b border-transparent flex items-center justify-between">
              <div className="flex items-center gap-3">
                 <div className="h-2 w-2 rounded-full bg-teal-500 animate-pulse shadow-[0_0_8px_rgba(20,184,166,0.6)]" />
@@ -91,7 +90,7 @@ export default function ProviderKYC() {
           </div>
           
           <div className="p-8 md:p-12 pt-6">
-             {/* 🎯 The Core Upload Component */}
+             {/*The Core Upload Component */}
              <KYCUploadPanel /> 
           </div>
         </div>

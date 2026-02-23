@@ -10,12 +10,12 @@ import {
   Zap,
   TrendingUp,
   Activity,
-  ArrowLeft, // 🎯 Used for the "Back to Casinos" action
+  ArrowLeft, 
   Trophy,
   Receipt,
   Gift,
-  BarChart3, // 🎯 Added for Analytics
-  Shield // Responsible Gaming
+  BarChart3,
+  Shield
 
 } from "lucide-react"; 
 import { useAuth } from "../../context/AuthContext";
@@ -24,7 +24,7 @@ import api from "../../lib/axios";
 export default function PlayerLayout() {
   const { user, balance, updateBalance, activeTenantId, selectTenant } = useAuth();
 
-  // 🎯 SECURITY GUARD: If no casino is selected, redirect back to the Marketplace
+  // SECURITY GUARD: If no casino is selected, redirect back to the Marketplace
   if (!activeTenantId) {
     return <Navigate to="/player/casinos" replace />;
   }
@@ -89,7 +89,7 @@ export default function PlayerLayout() {
             <span className="font-bold">My Bets</span>
           </NavLink>
 
-                    {/* 🎯 NEW: PLAYER ANALYTICS LINK */}
+                    {/*  PLAYER ANALYTICS LINK */}
           <NavLink to="/player/analytics" className={navItemClass}>
             <BarChart3 size={20} className="text-teal-400" /> 
             <span className="font-bold">Performance Hub</span>
@@ -134,7 +134,7 @@ export default function PlayerLayout() {
           </NavLink>
         </nav>
 
-        {/* 🎯 "BACK TO CASINOS" Section - Replaces Sign Out */}
+        {/*  "BACK TO CASINOS" Section - Replaces Sign Out */}
         <div className="p-4 bg-slate-900/80 border-t border-slate-800">
           <button 
             onClick={() => selectTenant(null)}
@@ -146,7 +146,7 @@ export default function PlayerLayout() {
         </div>
       </aside>
 
-      {/* ⚪ MAIN VIEWPORT */}
+      {/* MAIN VIEWPORT */}
       <div className="flex-1 flex flex-col min-w-0 bg-[#070b14] relative">
         
         {/* Background Ambient Glows */}

@@ -238,10 +238,8 @@ class GameplayService:
                 "bet",
                 round_obj.round_id
             )
-
-            # ─────────────────────────────
-            # 🎯 RESPONSIBLE GAMING: Update WAGER Usage
-            # ─────────────────────────────
+            # RESPONSIBLE GAMING: Update WAGER Usage
+         
             ResponsibleGamingService.update_usage(
                 db=db,
                 player_id=player_id,
@@ -250,30 +248,23 @@ class GameplayService:
                 amount=bet_amount,
                 period="DAILY"
             )
-
-            # ─────────────────────────────
             # BONUS WAGERING (GAME STAKE)
-            # ─────────────────────────────
+          
             BonusService.apply_wagering(
                 db, 
                 player_id=player_id, 
                 bet_amount=game_stake, 
-                tenant_id=tenant_id # 👈 PASS CONTEXT
+                tenant_id=tenant_id 
             )
-
-
-            # ─────────────────────────────
             # GAME ENGINE EXECUTION (GAME STAKE)
-            # ─────────────────────────────
+            
             result = engine.run(game_stake, **kwargs)
             win_amount = result["win_amount"]
 
-            # ─────────────────────────────
-            # 🎯 RESPONSIBLE GAMING: Check & Update LOSS Limit
-            # ─────────────────────────────
-            net_loss = bet_amount - win_amount  # Positive if lost, negative if won
+            # RESPONSIBLE GAMING: Check & Update LOSS Limit
+        
+            net_loss = bet_amount - win_amount 
             if net_loss > 0:
-                # Check if this loss would exceed limit
                 loss_check = ResponsibleGamingService.check_limit(
                     db=db,
                     player_id=player_id,
@@ -283,7 +274,6 @@ class GameplayService:
                     period="DAILY"
                 )
                 if not loss_check.within_limit:
-                    # This shouldn't happen in normal flow, but protect against edge cases
                     raise HTTPException(
                         status_code=400,
                         detail=f"Loss limit exceeded. Your daily loss limit is ${loss_check.limit_value:.2f}."
@@ -298,9 +288,7 @@ class GameplayService:
                     period="DAILY"
                 )
 
-            # ─────────────────────────────
             # WALLET CREDIT (WIN)
-            # ─────────────────────────────
             if win_amount > 0:
                 WalletService.apply_transaction(
                     db,
@@ -310,10 +298,7 @@ class GameplayService:
                     "bet",
                     round_obj.round_id
                 )
-
-            # ─────────────────────────────
             # FINAL UPDATES
-            # ─────────────────────────────
             bet.win_amount = win_amount
             bet.bet_status = "settled"
             bet.settled_at = datetime.utcnow()
@@ -323,23 +308,22 @@ class GameplayService:
             round_obj.outcome = result["outcome"]
             round_obj.ended_at = datetime.utcnow()
 
-            # db.commit()
+           
 
-             # 🎯 NEW: Trigger Live Analytics
+             #Trigger Live Analytics
             try:
                 AnalyticsService.update_bet_stats(
                     db=db,
                     tenant_id=tenant_id,
                     player_id=player_id,
                     game_id=game_id,
-                    provider_id=game.provider_id, # Ensure Game model has provider_id
+                    provider_id=game.provider_id, 
                     bet_amount=bet_amount,
                     win_amount=win_amount
                 )
-                db.commit() # Save analytics
+                db.commit()
             except Exception as e:
                 print(f"Analytics logging failed: {e}") 
-                # We don't crash the game if analytics fail, just log it.
 
             return {
                 "round_id": round_obj.round_id,
@@ -362,11 +346,10 @@ class GameplayService:
 
     @staticmethod
     def end_session(db: Session, player_id: uuid.UUID, game_id: uuid.UUID, tenant_id: uuid.UUID):
-        # 🎯 FIX 1: Filter by tenant_id as well
         session = db.query(GameSession).filter(
             GameSession.player_id == player_id,
             GameSession.game_id == game_id,
-            GameSession.tenant_id == tenant_id, # 👈 Added this
+            GameSession.tenant_id == tenant_id,
             GameSession.status == "active"
         ).first()
 
@@ -375,22 +358,18 @@ class GameplayService:
 
         now = datetime.now()
 
-        # Handle string to datetime conversion
+    
         start_time = session.started_at
         if start_time is None:
-           # Fallback: if started_at is missing, treat duration as 0 instead of crashing
            start_time = now
         if isinstance(start_time, str):
             from dateutil import parser
             start_time = parser.parse(start_time)
             
-        # 🎯 FIX 2: Use the 'start_time' variable we just checked/parsed
+      
         duration = int((now - start_time).total_seconds())
 
-        # ─────────────────────────────
-        # 🎯 RESPONSIBLE GAMING: Update SESSION Usage (in minutes)
-        # ─────────────────────────────
-        duration_minutes = duration / 60.0  # Convert seconds to minutes
+        duration_minutes = duration / 60.0 
         if duration_minutes > 0:
             ResponsibleGamingService.update_usage(
                 db=db,

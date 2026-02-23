@@ -186,7 +186,7 @@ export default function TenantGameLibrary() {
         </div>
       )}
 
-      {/* ⭐ ENGINE CONFIG MODAL (Matching your theme) */}
+      {/*  ENGINE CONFIG MODAL*/}
       {selectedConfig && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div 

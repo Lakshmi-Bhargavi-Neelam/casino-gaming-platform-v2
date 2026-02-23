@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 import uuid
-from app.schemas.tenant_admin import TenantAdminCreate
-from app.services.tenant_admin_service import TenantAdminService
+
 from app.core.database import get_db
 from app.core.security import require_super_admin, get_current_user
 
-# app/api/v1/endpoints/tenant_admins.py
+from app.schemas.tenant_admin import TenantAdminCreate
+from app.services.tenant_admin_service import TenantAdminService
+
 from app.models.player import Player
 from app.models.user import User
 from app.models.country import Country
@@ -26,14 +27,11 @@ def create_tenant_admin(
     return TenantAdminService.create_tenant_admin(db, payload)
 
 
-# app/api/v1/endpoints/tenant_admins.py
-
-# app/api/v1/endpoints/tenant_admins.py
-
 @router.get("/admin/players/list")
-def get_tenant_players(db: Session = Depends(get_db), user = Depends(get_current_user)):
-    # 🎯 FIX: Filter the outer join to only include the 'CASH' wallet
-    # This prevents the same player from appearing multiple times
+def get_tenant_players(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
     results = db.query(
         Player, User, Country, Wallet
     ).join(User, Player.player_id == User.user_id)\
@@ -47,16 +45,21 @@ def get_tenant_players(db: Session = Depends(get_db), user = Depends(get_current
             "player_name": f"{u.first_name} {u.last_name}" if (u.first_name and u.last_name) else u.email.split('@')[0],
             "email": u.email,
             "country": c.country_name,
-            "status": p.status, 
-            
+            "status": p.status,
             "last_login": p.last_login_at.strftime("%Y-%m-%d %H:%M") if p.last_login_at else "Never",
             "balance": float(w.balance) if w else 0.0,
             "joined_at": p.created_at.strftime("%Y-%m-%d") if p.created_at else "Unknown"
-        } for p, u, c, w in results
+        }
+        for p, u, c, w in results
     ]
+
+
 @router.post("/admin/players/{player_id}/status")
-def update_player_status(player_id: uuid.UUID, status_update: dict, db: Session = Depends(get_db)):
-    # 🎯 Update status in the Players table
+def update_player_status(
+    player_id: uuid.UUID,
+    status_update: dict,
+    db: Session = Depends(get_db)
+):
     player = db.query(Player).filter(Player.player_id == player_id).first()
     if not player:
         raise HTTPException(404, "Player not found")

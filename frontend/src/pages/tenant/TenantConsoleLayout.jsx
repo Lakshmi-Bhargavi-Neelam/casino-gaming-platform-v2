@@ -92,7 +92,7 @@ export default function TenantConsoleLayout() {
 
           <div className="px-4 mt-6 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Compliance</div>
 
-          {/* 🎯 "Verifications" link has been removed as per the Global Identity design */}
+          {/* "Verifications" link has been removed as per the Global Identity design */}
 
           <NavLink to="/console/withdrawals" className={navItemClass}>
             <Banknote size={20} />

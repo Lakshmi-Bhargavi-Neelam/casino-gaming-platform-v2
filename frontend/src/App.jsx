@@ -41,8 +41,8 @@ import TransactionsPage from './pages/player/TransactionsPage';
 import Bonuses from "./pages/player/Bonuses";
 import BonusDetails from "./pages/player/BonusDetails";
 import TenantSelector from "./pages/player/TenantSelector";
-import PlayerAnalytics from './pages/player/PlayerAnalytics'; // 🎯 Add this import
-import ResponsibleGaming from './pages/player/ResponsibleGaming'; // Responsible Gaming Limits
+import PlayerAnalytics from './pages/player/PlayerAnalytics'; 
+import ResponsibleGaming from './pages/player/ResponsibleGaming'; 
 
 
 
@@ -77,17 +77,17 @@ function App() {
 
         <Routes>
 
-          {/* 🌍 PUBLIC */}
+          {/* PUBLIC */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register-player" element={<PlayerRegistration />} />
 
-          {/* 🟥 SUPER ADMIN DASHBOARD */}
+          {/*SUPER ADMIN DASHBOARD */}
 
           
           <Route path="/dashboard" element={<Layout />}>
 
-  {/* 👇 DEFAULT ROUTE */}
+  {/* DEFAULT ROUTE */}
   <Route
     index
     element={<Navigate to="super-admin-home" replace />}
@@ -102,7 +102,7 @@ function App() {
 
 </Route>
 
-          {/* 🟦 TENANT CONSOLE */}
+          {/* TENANT CONSOLE */}
           <Route
             path="/console"
             element={
@@ -119,18 +119,18 @@ function App() {
   {/* The rest of your routes */}
   <Route path="dashboard" element={<TenantDashboard />} />
   <Route path="bonus-management" element={<BonusManagement />} />
-  <Route path="bonuses" element={<BonusList />} />   {/* ✅ ADD THIS */}
+  <Route path="bonuses" element={<BonusList />} />   {/* ADD THIS */}
   <Route path="jackpot-management" element={<JackpotManagement />} />
 <Route path="jackpot-registry" element={<JackpotRegistry />} />
             <Route path="library" element={<TenantGameLibrary />} />
             <Route path="my-games" element={<TenantEnabledGames />} />
             <Route path="players" element={<TenantPlayers />} />
-            <Route path="player-verification" element={<PlayerVerification />} /> {/* 🎯 New */}
+            <Route path="player-verification" element={<PlayerVerification />} /> 
   <Route path="my-verification" element={<MyVerification />} />
             <Route path="withdrawals" element={<TenantWithdrawals />} />
           </Route>
 
-          {/* 🟩 PROVIDER AREA */}
+          {/*PROVIDER AREA */}
           <Route
             path="/provider"
             element={
@@ -144,7 +144,6 @@ function App() {
             <Route path="kyc" element={<ProviderKYC />} />
           </Route>
 
-{/* 🎯 1. Standalone Marketplace Route (No Sidebar) */}
 <Route 
   path="/player/casinos" 
   element={
@@ -153,7 +152,7 @@ function App() {
     </ProtectedRoute>
   } 
 />
-{/* 🎮 PLAYER AREA (New Nested Routes) */}
+{/* PLAYER AREA */}
           <Route
             path="/player"
             element={

@@ -10,11 +10,11 @@ import {
   ChevronDown, 
   CheckCircle,
   ShieldCheck,
-  Mail // 🎯 Added Mail icon for the new field
+  Mail 
 } from 'lucide-react';
 import api from '../../lib/axios';
 
-// 🎯 Allowed domains based on your backend strict constraint
+//  Allowed domains based on your backend strict constraint
 const ALLOWED_DOMAINS = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"];
 
 export default function TenantAdminForm() {
@@ -38,7 +38,7 @@ export default function TenantAdminForm() {
 
   const onSubmit = async (data) => {
     try {
-      // 🎯 Data payload now includes the real email provided by the user
+      //  Data payload now includes the real email provided by the user
       await api.post('/tenant-admins', data);
       toast.success(`Admin account created for ${data.email}!`);
       reset();
@@ -120,7 +120,7 @@ export default function TenantAdminForm() {
             </div>
           </div>
 
-          {/* 🎯 LOGIC CHANGE: Replaced "Admin Username" with "Real Email Address" */}
+          {/* LOGIC CHANGE: Replaced "Admin Username" with "Real Email Address" */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Admin Email Address</label>
             <div className="relative group">

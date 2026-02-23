@@ -4,7 +4,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import uuid
-from app.core.database import Base
+from app.models.base import Base
+from app.models.player import Player
+
+player = relationship(Player, backref="limits")
 
 
 class PlayerLimit(Base):
@@ -56,4 +59,4 @@ class PlayerLimit(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    player = relationship("Player", backref="limits")
+    player = relationship(Player, backref="limits")

@@ -20,14 +20,14 @@ export default function SlotMachine({ gameId, optIn, tenantId }) {
     try {
       const res = await api.post('/gameplay/play', {
         game_id: gameId,
-        tenant_id: tenantId, // 👈 Required by backend now
+        tenant_id: tenantId, 
         bet_amount: betAmount,
-        opt_in: optIn // <--- THIS IS THE KEY
+        opt_in: optIn 
 
       });
 
 const { game_data, win_amount, balance: newBalance } = res.data;
-const spin = game_data.spin; // game_data contains the {"spin": [...]} object
+const spin = game_data.spin; 
       // Reel timing logic
       setTimeout(() => {
         setReels(spin);
@@ -166,130 +166,3 @@ function Reel({ symbol, spinning, delay }) {
 
 
 
-// import React, { useState } from 'react';
-// import { motion, AnimatePresence } from 'framer-motion';
-// import confetti from 'canvas-confetti';
-// import { Coins, Play, RotateCw } from 'lucide-react';
-// import api from '../lib/axios';
-// import { useAuth } from '../context/AuthContext';
-
-// export default function SlotMachine({ gameId }) {
-//   const { balance, updateBalance } = useAuth();
-
-//   const [reels, setReels] = useState([]);
-//   const [symbols, setSymbols] = useState([]);
-//   const [isSpinning, setIsSpinning] = useState(false);
-//   const [betAmount, setBetAmount] = useState(10);
-//   const [lastWin, setLastWin] = useState(0);
-//   const [showWinOverlay, setShowWinOverlay] = useState(false);
-
-//   const handleSpin = async () => {
-//     if (isSpinning || balance < betAmount) return;
-
-//     setIsSpinning(true);
-//     setLastWin(0);
-
-//     try {
-//       const res = await api.post('/gameplay/play', {
-//         game_id: gameId,
-//         bet_amount: betAmount
-//       });
-
-//       const { spin, win, balance: newBalance, config } = res.data;
-
-//       setSymbols(config.symbol_map || []);
-      
-//       setTimeout(() => {
-//         setReels(spin);
-//         setIsSpinning(false);
-//         updateBalance(newBalance);
-
-//         if (win > 0) {
-//           setLastWin(win);
-//           setShowWinOverlay(true);
-//           confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
-//           setTimeout(() => setShowWinOverlay(false), 3000);
-//         }
-//       }, 1500);
-
-//     } catch (err) {
-//       setIsSpinning(false);
-//       console.error(err);
-//     }
-//   };
-
-//   return (
-//     <div className="flex flex-col items-center gap-8 w-full">
-
-//       {/* Balance */}
-//       <div className="bg-slate-900 border border-slate-800 px-6 py-3 rounded-2xl flex items-center gap-3 shadow-2xl">
-//         <Coins className="text-yellow-500 animate-pulse" size={24} />
-//         <span className="text-2xl font-mono font-bold text-yellow-500">
-//           ${Number(balance || 0).toLocaleString()}
-//         </span>
-//       </div>
-
-//       {/* Win Banner */}
-//       <AnimatePresence>
-//         {showWinOverlay && (
-//           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 2, opacity: 0 }}>
-//             <h2 className="text-5xl font-black text-yellow-400">WIN +${lastWin}</h2>
-//           </motion.div>
-//         )}
-//       </AnimatePresence>
-
-//       {/* Reels */}
-//       <div className="flex gap-6 bg-slate-950 p-8 rounded-[2rem] border-4 border-slate-900 shadow-inner">
-//         {reels.map((symbol, i) => (
-//           <Reel key={i} symbol={symbol} spinning={isSpinning} allSymbols={symbols} />
-//         ))}
-//       </div>
-
-//       {/* Bet Controls */}
-//       <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl">
-//         <div>
-//           <label className="text-xs font-bold text-slate-500 uppercase mb-2 block">Bet Amount</label>
-//           <input
-//             type="number"
-//             value={betAmount}
-//             disabled={isSpinning}
-//             onChange={(e) => setBetAmount(Number(e.target.value))}
-//             className="w-full bg-slate-800 border border-slate-700 rounded-2xl py-4 px-4 font-bold text-lg text-white"
-//           />
-//         </div>
-
-//         <motion.button
-//           whileTap={{ scale: 0.95 }}
-//           onClick={handleSpin}
-//           disabled={isSpinning || balance < betAmount}
-//           className={`w-full py-5 rounded-2xl font-black text-xl transition
-//             ${isSpinning ? 'bg-slate-700 text-slate-500' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}
-//         >
-//           {isSpinning ? <RotateCw className="animate-spin mx-auto" /> : <Play className="mx-auto" />}
-//         </motion.button>
-//       </div>
-//     </div>
-//   );
-// }
-
-// function Reel({ symbol, spinning, allSymbols }) {
-//   return (
-//     <div className="w-32 h-48 bg-slate-900 rounded-3xl flex items-center justify-center text-6xl overflow-hidden">
-//       <AnimatePresence>
-//         {spinning ? (
-//           <motion.div
-//             animate={{ y: ["-100%", "0%"] }}
-//             transition={{ repeat: Infinity, duration: 0.15 }}
-//             className="flex flex-col gap-10 opacity-40 blur-sm"
-//           >
-//             {allSymbols.map((s, i) => <div key={i}>{s}</div>)}
-//           </motion.div>
-//         ) : (
-//           <motion.div initial={{ y: -100 }} animate={{ y: 0 }}>
-//             {symbol}
-//           </motion.div>
-//         )}
-//       </AnimatePresence>
-//     </div>
-//   );
-// }

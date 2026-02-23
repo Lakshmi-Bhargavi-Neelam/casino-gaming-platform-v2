@@ -1,14 +1,17 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
+import uuid
+
 from app.core.database import get_db
+
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.models.game_provider import GameProvider
 from app.models.analytics_snapshot import AnalyticsSnapshot
 from app.models.player_stats_summary import PlayerStatsSummary
 from app.models.game import Game
-import uuid
+
 
 router = APIRouter(prefix="/super-admin/analytics", tags=["Super Admin Analytics"])
 
@@ -18,16 +21,11 @@ def get_intelligence(
     tenant_id: uuid.UUID = Query(None),
     db: Session = Depends(get_db)
 ):
-    # ─────────────────────────────
     # Base Filters
-    # ─────────────────────────────
     filters = []
     if tenant_id:
         filters.append(AnalyticsSnapshot.tenant_id == tenant_id)
 
-    # ─────────────────────────────
-    # Core Aggregates
-    # ─────────────────────────────
     stats = db.query(
         func.coalesce(func.sum(AnalyticsSnapshot.total_bets), 0).label("volume"),
         func.coalesce(func.sum(AnalyticsSnapshot.ggr), 0).label("ggr"),
@@ -40,9 +38,8 @@ def get_intelligence(
 
     rtp = round((wins / volume) * 100, 2) if volume > 0 else 0
 
-    # ─────────────────────────────
     # Counts
-    # ─────────────────────────────
+
     if tenant_id:
         active_players = db.query(User).filter(User.tenant_id == tenant_id).count()
         active_tenants = 1
@@ -52,11 +49,9 @@ def get_intelligence(
 
     active_providers = db.query(GameProvider).count()
 
-    # ─────────────────────────────
     # Top Performers
-    # ─────────────────────────────
     if not tenant_id:
-        # ✅ GLOBAL → TOP TENANTS
+       
         top_performers = (
             db.query(
                 Tenant.tenant_id.label("id"),
@@ -70,7 +65,6 @@ def get_intelligence(
             .all()
         )
     else:
-        # ✅ TENANT VIEW → TOP GAMES
         top_performers = (
             db.query(
                 Game.game_id.label("id"),
@@ -85,9 +79,6 @@ def get_intelligence(
             .all()
         )
 
-    # ─────────────────────────────
-    # Top Players
-    # ─────────────────────────────
     player_filters = [User.tenant_id == tenant_id] if tenant_id else []
 
     top_players = (
@@ -102,9 +93,8 @@ def get_intelligence(
         .all()
     )
 
-    # ─────────────────────────────
     # Regional Data
-    # ─────────────────────────────
+ 
     regional = (
         db.query(
             AnalyticsSnapshot.country_code.label("country"),
@@ -114,10 +104,7 @@ def get_intelligence(
         .group_by(AnalyticsSnapshot.country_code)
         .all()
     )
-
-    # ─────────────────────────────
-    # Response
-    # ─────────────────────────────
+ 
     return {
         "is_tenant_view": bool(tenant_id),
         "kpis": {

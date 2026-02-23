@@ -1,5 +1,3 @@
-# app/services/history_service.py
-
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 import uuid
@@ -14,7 +12,6 @@ class HistoryService:
 
     @staticmethod
     def get_player_dashboard(db: Session, player_id: uuid.UUID, game_name: str = None, status: str = None, limit: int = 50):
-        # 1. Summary Statistics (Total Wagered/Won) - Usually remains global
         stats = (
             db.query(
                 func.sum(GameRound.bet_amount).label("total_wagered"),
@@ -26,7 +23,6 @@ class HistoryService:
             .first()
         )
 
-        # 2. Base Query for History
         query = (
             db.query(
                 GameRound.round_id,
@@ -42,8 +38,6 @@ class HistoryService:
             .outerjoin(WalletTransaction, WalletTransaction.reference_id == GameRound.round_id)
             .filter(GameSession.player_id == player_id)
         )
-
-        # 🎯 3. APPLY FILTERS IN DATABASE
         if game_name and game_name != 'all':
             query = query.filter(Game.game_name == game_name)
         
